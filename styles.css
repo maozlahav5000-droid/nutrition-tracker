@@ -360,6 +360,92 @@ body {
     color: var(--text-muted);
 }
 
+.btn-secondary-sm {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--primary);
+    background: var(--primary-light);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--primary-dark);
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.btn-secondary-sm:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-secondary-sm svg { flex-shrink: 0; }
+
+/* Custom food form */
+.cf-macro-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.cf-macro-grid input {
+    text-align: center;
+    font-weight: 600;
+}
+
+.result-custom-badge {
+    font-size: 0.6rem;
+    font-weight: 600;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-right: 6px;
+}
+
+.result-delete-custom {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    margin-right: 4px;
+    border-radius: 4px;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    opacity: 0;
+}
+
+.search-result-item:hover .result-delete-custom {
+    opacity: 1;
+}
+
+.result-delete-custom:hover {
+    color: var(--fat);
+    background: var(--fat-light);
+}
+
+.no-results-action {
+    margin-top: 8px;
+}
+
+.no-results-action button {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
 .search-wrapper {
     position: relative;
     margin-bottom: 12px;
@@ -1267,6 +1353,7 @@ body {
     .user-name-sm { max-width: 55px; font-size: 0.78rem; }
     .header-actions { gap: 6px; }
     .user-grid { grid-template-columns: 1fr; }
+    .cf-macro-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 input, select, button {

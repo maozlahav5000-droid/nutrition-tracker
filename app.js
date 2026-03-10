@@ -28,7 +28,7 @@ const MEAL_LABELS = {
 const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 const CATEGORIES = [
-    'הכל', 'חלבונים', 'מוצרי חלב', 'פחמימות', 'ירקות', 'פירות',
+    'הכל', 'מוצרים שלי', 'חלבונים', 'מוצרי חלב', 'פחמימות', 'ירקות', 'פירות',
     'מאכלים מוכנים', 'קטניות ודגנים', 'שומנים ושמנים', 'חטיפים ומתוקים', 'משקאות'
 ];
 
@@ -44,6 +44,7 @@ const state = {
     currentDate: new Date(),
     dailyLog: [],
     goals: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+    customFoods: [],
     selectedFood: null,
     selectedMeal: 'breakfast',
     activeCategory: null,
@@ -93,6 +94,7 @@ function init() {
 
 function enterApp() {
     renderUserHeader();
+    loadCustomFoods();
     loadProfile();
     if (!state.profile) {
         showModal('profile-modal', true);
@@ -135,6 +137,7 @@ function switchUser(userId) {
     localStorage.setItem('nutrition_current_user', userId);
     state.profile = null;
     state.dailyLog = [];
+    state.customFoods = [];
     state.currentDate = new Date();
     state.goals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
     hideModal('user-modal');
@@ -192,6 +195,31 @@ function migrateOldData() {
 
     localStorage.setItem('nutrition_users', JSON.stringify(users));
     localStorage.setItem('nutrition_current_user', userId);
+}
+
+// ==================== CUSTOM FOODS ====================
+
+function loadCustomFoods() {
+    const data = localStorage.getItem(uKey('custom_foods'));
+    state.customFoods = data ? JSON.parse(data) : [];
+}
+
+function saveCustomFoods() {
+    localStorage.setItem(uKey('custom_foods'), JSON.stringify(state.customFoods));
+}
+
+function getAllFoods() {
+    return [...state.customFoods, ...FOOD_DATABASE];
+}
+
+function addCustomFood(food) {
+    state.customFoods.push(food);
+    saveCustomFoods();
+}
+
+function deleteCustomFood(foodId) {
+    state.customFoods = state.customFoods.filter(f => f.id !== foodId);
+    saveCustomFoods();
 }
 
 // ==================== EVENT LISTENERS ====================
@@ -280,6 +308,11 @@ function setupEventListeners() {
     document.getElementById('new-user-name').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') handleCreateUser();
     });
+
+    // Custom food modal
+    document.getElementById('open-custom-food').addEventListener('click', () => showModal('custom-food-modal'));
+    document.getElementById('close-custom-food').addEventListener('click', () => hideModal('custom-food-modal'));
+    document.getElementById('custom-food-form').addEventListener('submit', handleCustomFoodSubmit);
 }
 
 function handleCreateUser() {
@@ -293,6 +326,33 @@ function handleCreateUser() {
     document.getElementById('show-add-user').classList.remove('hidden');
 
     switchUser(user.id);
+}
+
+// ==================== CUSTOM FOOD ====================
+
+function handleCustomFoodSubmit(e) {
+    e.preventDefault();
+    const food = {
+        id: 'c_' + Date.now(),
+        name: document.getElementById('cf-name').value.trim(),
+        category: document.getElementById('cf-category').value,
+        calories: parseFloat(document.getElementById('cf-calories').value) || 0,
+        protein: parseFloat(document.getElementById('cf-protein').value) || 0,
+        carbs: parseFloat(document.getElementById('cf-carbs').value) || 0,
+        fat: parseFloat(document.getElementById('cf-fat').value) || 0,
+        fiber: 0,
+        servingSize: parseInt(document.getElementById('cf-serving').value) || 100,
+        servingDescription: document.getElementById('cf-serving-desc').value.trim() || 'מנה',
+        isCustom: true
+    };
+
+    if (!food.name) return;
+    addCustomFood(food);
+    hideModal('custom-food-modal');
+    document.getElementById('custom-food-form').reset();
+    document.getElementById('cf-serving').value = 100;
+    document.getElementById('cf-serving-desc').value = 'מנה';
+    openPortionModal(food);
 }
 
 // ==================== PROFILE ====================
@@ -530,8 +590,15 @@ function setupCategoryPills() {
 
 function searchFood() {
     const query = state.searchQuery.trim().toLowerCase();
-    let results = FOOD_DATABASE;
-    if (state.activeCategory) results = results.filter(f => f.category === state.activeCategory);
+    let results;
+
+    if (state.activeCategory === 'מוצרים שלי') {
+        results = state.customFoods;
+    } else {
+        results = getAllFoods();
+        if (state.activeCategory) results = results.filter(f => f.category === state.activeCategory);
+    }
+
     if (query) results = results.filter(f => f.name.includes(query));
     renderSearchResults(results);
 }
@@ -714,25 +781,59 @@ function renderSearchResults(results) {
     }
     container.classList.add('visible');
     if (results.length === 0) {
-        container.innerHTML = '<div class="no-results">לא נמצאו תוצאות</div>';
+        container.innerHTML = `
+            <div class="no-results">
+                לא נמצאו תוצאות
+                <div class="no-results-action"><button id="no-results-add">+ צור מוצר חדש</button></div>
+            </div>`;
+        document.getElementById('no-results-add').addEventListener('click', () => {
+            const nameInput = document.getElementById('cf-name');
+            showModal('custom-food-modal');
+            if (state.searchQuery) nameInput.value = state.searchQuery;
+        });
         return;
     }
-    container.innerHTML = results.map(food => `
+    container.innerHTML = results.map(food => {
+        const isCustom = food.isCustom;
+        const badge = isCustom ? '<span class="result-custom-badge">שלי</span>' : '';
+        const deleteBtn = isCustom ? `<button class="result-delete-custom" data-delete-cf="${food.id}" title="מחק מוצר">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>` : '';
+        return `
         <div class="search-result-item" data-food-id="${food.id}">
+            ${deleteBtn}
             <div class="result-main">
-                <div class="result-name">${food.name}</div>
+                <div class="result-name">${badge}${food.name}</div>
                 <div class="result-category">${food.category} · ${food.servingDescription} (${food.servingSize}g)</div>
             </div>
             <div class="result-cal">${food.calories} קק"ל/100g</div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 
     container.querySelectorAll('.search-result-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const food = FOOD_DATABASE.find(f => f.id === parseInt(item.dataset.foodId));
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.result-delete-custom')) return;
+            const foodId = item.dataset.foodId;
+            const food = findFoodById(foodId);
             if (food) openPortionModal(food);
         });
     });
+
+    container.querySelectorAll('.result-delete-custom').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.deleteCf;
+            deleteCustomFood(id);
+            searchFood();
+        });
+    });
+}
+
+function findFoodById(id) {
+    if (typeof id === 'string' && id.startsWith('c_')) {
+        return state.customFoods.find(f => f.id === id);
+    }
+    return getAllFoods().find(f => String(f.id) === String(id));
 }
 
 function renderFoodLog() {
@@ -819,6 +920,11 @@ function showModal(id, forceOpen) {
             (forceOpen || !state.currentUserId) ? 'none' : '';
         document.getElementById('add-user-form').classList.remove('visible');
         document.getElementById('show-add-user').classList.remove('hidden');
+    }
+    if (id === 'custom-food-modal') {
+        document.getElementById('custom-food-form').reset();
+        document.getElementById('cf-serving').value = 100;
+        document.getElementById('cf-serving-desc').value = 'מנה';
     }
 }
 

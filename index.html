@@ -100,6 +100,10 @@
         <section class="add-food-section">
             <div class="section-header">
                 <h2>הוסף מאכל</h2>
+                <button id="open-custom-food" class="btn-secondary-sm" title="צור מוצר חדש">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg>
+                    מוצר חדש
+                </button>
             </div>
             <div class="search-wrapper">
                 <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -254,6 +258,70 @@
                 <div class="portion-preview" id="portion-preview"></div>
                 <button type="button" class="btn-primary btn-add" id="add-food-btn">הוסף למעקב</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Custom Food Modal -->
+    <div id="custom-food-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>מוצר חדש</h2>
+                <button class="close-btn" id="close-custom-food">&times;</button>
+            </div>
+            <p class="modal-subtitle">הזן ערכים תזונתיים ל-100 גרם</p>
+            <form id="custom-food-form">
+                <div class="form-row">
+                    <div class="form-group" style="flex:2">
+                        <label for="cf-name">שם המוצר</label>
+                        <input type="text" id="cf-name" placeholder="לדוגמה: פנקייק חלבון" required maxlength="40" autocomplete="off">
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label for="cf-category">קטגוריה</label>
+                        <select id="cf-category">
+                            <option value="חלבונים">חלבונים</option>
+                            <option value="מוצרי חלב">מוצרי חלב</option>
+                            <option value="פחמימות">פחמימות</option>
+                            <option value="ירקות">ירקות</option>
+                            <option value="פירות">פירות</option>
+                            <option value="מאכלים מוכנים" selected>מאכלים מוכנים</option>
+                            <option value="קטניות ודגנים">קטניות ודגנים</option>
+                            <option value="שומנים ושמנים">שומנים ושמנים</option>
+                            <option value="חטיפים ומתוקים">חטיפים ומתוקים</option>
+                            <option value="משקאות">משקאות</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="cf-macro-grid">
+                    <div class="form-group">
+                        <label for="cf-calories">קלוריות</label>
+                        <input type="number" id="cf-calories" min="0" max="1000" step="1" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cf-protein">חלבון (g)</label>
+                        <input type="number" id="cf-protein" min="0" max="100" step="0.1" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cf-carbs">פחמימות (g)</label>
+                        <input type="number" id="cf-carbs" min="0" max="100" step="0.1" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cf-fat">שומן (g)</label>
+                        <input type="number" id="cf-fat" min="0" max="100" step="0.1" placeholder="0" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cf-serving">גודל מנה (גרם)</label>
+                        <input type="number" id="cf-serving" min="1" max="2000" step="1" value="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cf-serving-desc">תיאור מנה</label>
+                        <input type="text" id="cf-serving-desc" placeholder="לדוגמה: יחידה אחת" value="מנה" maxlength="20" autocomplete="off">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">שמור מוצר</button>
+            </form>
         </div>
     </div>
 
