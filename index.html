@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>מעקב תזונה</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="מעקב תזונה">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="app-header">
+            <div class="header-right">
+                <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/>
+                    <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+                </svg>
+                <h1>מעקב תזונה</h1>
+            </div>
+            <div class="header-actions">
+                <button id="user-btn" class="user-btn" title="החלף משתמש">
+                    <span class="user-avatar-sm" id="user-avatar-sm"></span>
+                    <span class="user-name-sm" id="user-name-sm"></span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <button id="profile-btn" class="icon-btn" title="הגדרות פרופיל">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="date-nav">
+            <button id="next-day" class="nav-btn">&rsaquo;</button>
+            <div class="date-display">
+                <span id="date-text">היום</span>
+                <button id="today-btn" class="today-link" style="display:none">חזור להיום</button>
+            </div>
+            <button id="prev-day" class="nav-btn">&lsaquo;</button>
+        </div>
+
+        <section class="dashboard">
+            <div class="calorie-ring-container">
+                <svg class="calorie-ring-svg" viewBox="0 0 200 200">
+                    <circle class="ring-bg" cx="100" cy="100" r="85" />
+                    <circle class="ring-fill" id="calorie-ring" cx="100" cy="100" r="85" />
+                </svg>
+                <div class="ring-content">
+                    <span class="consumed" id="calories-consumed">0</span>
+                    <span class="goal-label clickable-goal" id="edit-calorie-goal" title="לחץ לעריכה">מתוך <span id="calories-goal">0</span></span>
+                    <span class="unit-label">קלוריות</span>
+                </div>
+            </div>
+
+            <div class="macro-cards">
+                <div class="macro-card protein-card">
+                    <div class="macro-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                    </div>
+                    <div class="macro-info">
+                        <span class="macro-name">חלבון</span>
+                        <span class="macro-value clickable-goal" id="edit-protein-goal" title="לחץ לעריכה"><strong id="protein-consumed">0</strong> / <span id="protein-goal">0</span>g</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" id="protein-bar"></div></div>
+                </div>
+                <div class="macro-card carbs-card">
+                    <div class="macro-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div class="macro-info">
+                        <span class="macro-name">פחמימות</span>
+                        <span class="macro-value"><strong id="carbs-consumed">0</strong> / <span id="carbs-goal">0</span>g</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" id="carbs-bar"></div></div>
+                </div>
+                <div class="macro-card fat-card">
+                    <div class="macro-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
+                    </div>
+                    <div class="macro-info">
+                        <span class="macro-name">שומן</span>
+                        <span class="macro-value"><strong id="fat-consumed">0</strong> / <span id="fat-goal">0</span>g</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" id="fat-bar"></div></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="add-food-section">
+            <div class="section-header">
+                <h2>הוסף מאכל</h2>
+            </div>
+            <div class="search-wrapper">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="food-search" placeholder="חפש מאכל..." autocomplete="off">
+                <button id="clear-search" class="clear-btn" style="display:none">&times;</button>
+            </div>
+            <div class="category-pills" id="category-pills"></div>
+            <div class="search-results" id="search-results"></div>
+        </section>
+
+        <section class="food-log-section">
+            <div class="section-header">
+                <h2>מה אכלתי היום</h2>
+                <span class="item-count" id="log-count"></span>
+            </div>
+            <div id="food-log-list" class="food-log-list">
+                <div class="empty-state" id="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+                        <path d="M3 3h18v18H3z" stroke="none"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/>
+                    </svg>
+                    <p>עוד לא הוספת מאכלים להיום</p>
+                    <p class="sub">חפש מאכל למעלה כדי להתחיל</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- User Selection Modal -->
+    <div id="user-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content user-modal-content">
+            <div class="modal-header">
+                <h2>בחר משתמש</h2>
+                <button class="close-btn" id="close-user">&times;</button>
+            </div>
+            <div class="user-grid" id="user-grid"></div>
+            <div class="add-user-area">
+                <button id="show-add-user" class="add-user-toggle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 5v14M5 12h14"/></svg>
+                    הוסף משתמש חדש
+                </button>
+                <div id="add-user-form" class="add-user-form">
+                    <input type="text" id="new-user-name" placeholder="שם המשתמש" maxlength="20" autocomplete="off">
+                    <button id="create-user-btn" class="btn-primary">צור</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>פרופיל אישי</h2>
+                <button class="close-btn" id="close-profile">&times;</button>
+            </div>
+            <p class="modal-subtitle">הזן את הנתונים שלך כדי לחשב יעדים יומיים</p>
+            <form id="profile-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="profile-gender">מין</label>
+                        <select id="profile-gender" required>
+                            <option value="male">זכר</option>
+                            <option value="female">נקבה</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-age">גיל</label>
+                        <input type="number" id="profile-age" min="10" max="120" placeholder="25" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="profile-weight">משקל (ק"ג)</label>
+                        <input type="number" id="profile-weight" min="30" max="300" step="0.1" placeholder="75" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-height">גובה (ס"מ)</label>
+                        <input type="number" id="profile-height" min="100" max="250" placeholder="175" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="profile-activity">רמת פעילות</label>
+                    <select id="profile-activity" required>
+                        <option value="sedentary">יושבני - ללא פעילות גופנית</option>
+                        <option value="light">פעילות קלה - 1-3 ימים בשבוע</option>
+                        <option value="moderate" selected>פעילות בינונית - 3-5 ימים בשבוע</option>
+                        <option value="active">פעילות גבוהה - 6-7 ימים בשבוע</option>
+                        <option value="veryActive">אינטנסיבית - אימון כפול / עבודה פיזית</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="profile-goal">מטרה</label>
+                    <select id="profile-goal" required>
+                        <option value="lose">ירידה במשקל (-500 קלוריות)</option>
+                        <option value="maintain" selected>שמירה על משקל</option>
+                        <option value="gain">עלייה במשקל / בניית מסה (+400 קלוריות)</option>
+                    </select>
+                </div>
+                <div class="goals-preview" id="goals-preview"></div>
+                <div class="custom-goals-section">
+                    <label class="toggle-row">
+                        <span class="toggle-label">התאם יעדים ידנית</span>
+                        <input type="checkbox" id="custom-goals-toggle" class="toggle-input">
+                        <span class="toggle-switch"></span>
+                    </label>
+                    <div class="custom-goals-fields" id="custom-goals-fields">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="custom-calories">יעד קלוריות</label>
+                                <input type="number" id="custom-calories" min="800" max="8000" step="50" placeholder="אוטומטי">
+                            </div>
+                            <div class="form-group">
+                                <label for="custom-protein">יעד חלבון (g)</label>
+                                <input type="number" id="custom-protein" min="20" max="500" step="5" placeholder="אוטומטי">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">שמור פרופיל</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Portion Modal -->
+    <div id="portion-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content portion-content">
+            <div class="modal-header">
+                <h2 id="portion-food-name"></h2>
+                <button class="close-btn" id="close-portion">&times;</button>
+            </div>
+            <div class="portion-nutrition-per100" id="portion-info"></div>
+            <div class="portion-body">
+                <div class="portion-selector">
+                    <label for="portion-grams">כמות (גרם)</label>
+                    <input type="number" id="portion-grams" min="1" max="2000" step="1" placeholder="100">
+                </div>
+                <div class="quick-portions" id="quick-portions"></div>
+                <div class="meal-selector">
+                    <label>ארוחה</label>
+                    <div class="meal-pills" id="meal-pills">
+                        <button type="button" class="meal-pill active" data-meal="breakfast">ארוחת בוקר</button>
+                        <button type="button" class="meal-pill" data-meal="lunch">ארוחת צהריים</button>
+                        <button type="button" class="meal-pill" data-meal="dinner">ארוחת ערב</button>
+                        <button type="button" class="meal-pill" data-meal="snack">חטיף</button>
+                    </div>
+                </div>
+                <div class="portion-preview" id="portion-preview"></div>
+                <button type="button" class="btn-primary btn-add" id="add-food-btn">הוסף למעקב</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="food-db.js"></script>
+    <script src="app.js"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+    </script>
+</body>
+</html>
