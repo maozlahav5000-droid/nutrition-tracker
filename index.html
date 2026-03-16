@@ -15,8 +15,8 @@
     <link rel="icon" type="image/svg+xml" href="icon.svg">
 
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <link rel="stylesheet" href="styles.css?v=5">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" async></script>
 </head>
 <body>
     <div id="app">
@@ -372,8 +372,8 @@
         </div>
     </div>
 
-    <script src="food-db.js"></script>
-    <script src="app.js"></script>
+    <script src="food-db.js?v=5"></script>
+    <script src="app.js?v=5"></script>
     <script>
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
