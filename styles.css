@@ -338,6 +338,23 @@ body {
 .carbs-card .progress-fill { background: var(--carbs); }
 .fat-card .progress-fill { background: var(--fat); }
 
+.protein-remaining {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--protein);
+}
+
+.protein-remaining.hit-goal {
+    color: var(--primary);
+}
+
+.protein-remaining.over-goal {
+    color: var(--protein);
+    opacity: 0.8;
+}
+
 /* ============= ADD FOOD SECTION ============= */
 .add-food-section {
     margin-bottom: 20px;

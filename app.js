@@ -783,6 +783,23 @@ function renderDashboard() {
     renderMacroBar('protein', totals.protein, goals.protein);
     renderMacroBar('carbs', totals.carbs, goals.carbs);
     renderMacroBar('fat', totals.fat, goals.fat);
+
+    const proteinRemaining = Math.round(goals.protein - totals.protein);
+    const el = document.getElementById('protein-remaining');
+    if (goals.protein > 0) {
+        if (proteinRemaining > 0) {
+            el.textContent = `נשאר ${proteinRemaining}g`;
+            el.className = 'protein-remaining';
+        } else if (proteinRemaining === 0) {
+            el.textContent = 'הגעת ליעד!';
+            el.className = 'protein-remaining hit-goal';
+        } else {
+            el.textContent = `עברת את היעד ב-${Math.abs(proteinRemaining)}g`;
+            el.className = 'protein-remaining over-goal';
+        }
+    } else {
+        el.textContent = '';
+    }
 }
 
 function renderMacroBar(name, consumed, goal) {
