@@ -236,6 +236,7 @@ function setupEventListeners() {
             const modal = e.target.closest('.modal');
             if (modal.id === 'profile-modal' && !state.profile) return;
             if (modal.id === 'user-modal' && !state.currentUserId) return;
+            if (modal.id === 'barcode-modal') stopBarcodeCamera();
             hideModal(modal.id);
         });
     });
@@ -313,6 +314,24 @@ function setupEventListeners() {
     document.getElementById('open-custom-food').addEventListener('click', () => showModal('custom-food-modal'));
     document.getElementById('close-custom-food').addEventListener('click', () => hideModal('custom-food-modal'));
     document.getElementById('custom-food-form').addEventListener('submit', handleCustomFoodSubmit);
+
+    // Barcode scanner
+    document.getElementById('open-barcode-scanner').addEventListener('click', openBarcodeScanner);
+    document.getElementById('close-barcode').addEventListener('click', () => {
+        stopBarcodeCamera();
+        hideModal('barcode-modal');
+    });
+    document.getElementById('barcode-search-btn').addEventListener('click', () => {
+        const code = document.getElementById('barcode-input').value.trim();
+        if (code) lookupBarcode(code);
+    });
+    document.getElementById('barcode-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const code = e.target.value.trim();
+            if (code) lookupBarcode(code);
+        }
+    });
+    document.getElementById('barcode-add-btn').addEventListener('click', handleBarcodeAdd);
 }
 
 function handleCreateUser() {
@@ -904,6 +923,194 @@ function createEmptyState() {
 }
 
 // ==================== MODAL HELPERS ====================
+
+// ==================== BARCODE SCANNER ====================
+
+let barcodeScanner = null;
+let barcodeScannerActive = false;
+let scannedProductData = null;
+
+function openBarcodeScanner() {
+    showModal('barcode-modal');
+    document.getElementById('barcode-result').style.display = 'none';
+    document.getElementById('barcode-input').value = '';
+    setBarcodeStatus('כוון את המצלמה לברקוד על המוצר', '');
+
+    setTimeout(() => startBarcodeCamera(), 300);
+}
+
+function startBarcodeCamera() {
+    if (barcodeScannerActive) return;
+
+    const readerEl = document.getElementById('barcode-reader');
+    readerEl.innerHTML = '';
+
+    if (typeof Html5Qrcode === 'undefined') {
+        setBarcodeStatus('ספריית סריקה לא נטענה. השתמש בהזנה ידנית.', 'error');
+        return;
+    }
+
+    barcodeScanner = new Html5Qrcode('barcode-reader');
+    barcodeScannerActive = true;
+
+    const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 120 },
+        formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39
+        ]
+    };
+
+    barcodeScanner.start(
+        { facingMode: 'environment' },
+        config,
+        onBarcodeScanned,
+        () => {}
+    ).catch(err => {
+        barcodeScannerActive = false;
+        if (String(err).includes('Permission') || String(err).includes('NotAllowed')) {
+            setBarcodeStatus('לא ניתנה הרשאת מצלמה. אפשר להזין ברקוד ידנית למטה.', 'error');
+        } else {
+            setBarcodeStatus('לא ניתן להפעיל מצלמה. הזן ברקוד ידנית למטה.', 'error');
+        }
+    });
+}
+
+function stopBarcodeCamera() {
+    if (barcodeScanner && barcodeScannerActive) {
+        barcodeScanner.stop().then(() => {
+            barcodeScannerActive = false;
+            barcodeScanner.clear();
+        }).catch(() => {
+            barcodeScannerActive = false;
+        });
+    }
+}
+
+function onBarcodeScanned(decodedText) {
+    stopBarcodeCamera();
+    document.getElementById('barcode-input').value = decodedText;
+    lookupBarcode(decodedText);
+}
+
+function setBarcodeStatus(msg, type) {
+    const el = document.getElementById('barcode-status');
+    el.innerHTML = `<p>${msg}</p>`;
+    el.className = 'barcode-status' + (type ? ` ${type}` : '');
+}
+
+async function lookupBarcode(barcode) {
+    barcode = barcode.trim();
+    if (!barcode) return;
+
+    setBarcodeStatus('מחפש מוצר...', 'loading');
+    document.getElementById('barcode-result').style.display = 'none';
+
+    try {
+        const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+        const data = await resp.json();
+
+        if (data.status !== 1 || !data.product) {
+            setBarcodeStatus(`מוצר לא נמצא (${barcode}). נסה ברקוד אחר או הוסף ידנית.`, 'error');
+            return;
+        }
+
+        const p = data.product;
+        const nutrients = p.nutriments || {};
+        const name = p.product_name_he || p.product_name || p.generic_name || 'מוצר ללא שם';
+        const brand = p.brands || '';
+        const imgUrl = p.image_small_url || p.image_front_small_url || '';
+
+        const cal = Math.round(nutrients['energy-kcal_100g'] || nutrients['energy-kcal'] || 0);
+        const prot = +(nutrients.proteins_100g || 0).toFixed(1);
+        const carb = +(nutrients.carbohydrates_100g || 0).toFixed(1);
+        const fat = +(nutrients.fat_100g || 0).toFixed(1);
+
+        let servingSize = 100;
+        let servingDesc = 'מנה';
+        if (p.serving_quantity) {
+            servingSize = Math.round(parseFloat(p.serving_quantity));
+        } else if (p.product_quantity && p.product_quantity < 500) {
+            servingSize = Math.round(parseFloat(p.product_quantity));
+        }
+        if (p.serving_size) {
+            servingDesc = p.serving_size;
+        }
+
+        scannedProductData = {
+            id: 'bc_' + barcode,
+            name,
+            category: guessCategoryFromProduct(p),
+            calories: cal,
+            protein: prot,
+            carbs: carb,
+            fat,
+            fiber: +(nutrients.fiber_100g || 0).toFixed(1),
+            servingSize: servingSize || 100,
+            servingDescription: servingDesc,
+            barcode,
+            isCustom: true
+        };
+
+        setBarcodeStatus('מוצר נמצא!', 'success');
+
+        document.getElementById('barcode-product-name').textContent = name;
+        document.getElementById('barcode-product-brand').textContent = brand;
+        document.getElementById('barcode-cal').textContent = cal;
+        document.getElementById('barcode-prot').textContent = prot + 'g';
+        document.getElementById('barcode-carb').textContent = carb + 'g';
+        document.getElementById('barcode-fat').textContent = fat + 'g';
+
+        const imgEl = document.getElementById('barcode-product-img');
+        if (imgUrl) {
+            imgEl.src = imgUrl;
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+        }
+
+        document.getElementById('barcode-result').style.display = 'block';
+
+    } catch {
+        setBarcodeStatus('שגיאת חיבור. בדוק את האינטרנט ונסה שוב.', 'error');
+    }
+}
+
+function guessCategoryFromProduct(product) {
+    const cats = (product.categories_tags || []).join(' ').toLowerCase();
+    const name = ((product.product_name || '') + ' ' + (product.generic_name || '')).toLowerCase();
+    const all = cats + ' ' + name;
+
+    if (all.match(/milk|חלב|yogurt|יוגורט|cheese|גבינה|cottage|קוטג|dairy/)) return 'מוצרי חלב';
+    if (all.match(/meat|בשר|chicken|עוף|beef|בקר|fish|דג|salmon|סלמון|tuna|טונה|egg|ביצ|protein/)) return 'חלבונים';
+    if (all.match(/bread|לחם|pasta|פסטה|rice|אורז|cereal|דגנים/)) return 'פחמימות';
+    if (all.match(/vegetable|ירק/)) return 'ירקות';
+    if (all.match(/fruit|פרי|פירות|juice|מיץ/)) return 'פירות';
+    if (all.match(/snack|חטיף|chocolate|שוקולד|candy|ממתק|cookie|עוגי|cake|עוגה/)) return 'חטיפים ומתוקים';
+    if (all.match(/oil|שמן|butter|חמאה|nut|אגוז/)) return 'שומנים ושמנים';
+    if (all.match(/beverage|drink|משקה|soda|water|מים/)) return 'משקאות';
+    if (all.match(/legume|קטניות|lentil|עדש|bean|שעועית/)) return 'קטניות ודגנים';
+    return 'מאכלים מוכנים';
+}
+
+function handleBarcodeAdd() {
+    if (!scannedProductData) return;
+
+    const existing = state.customFoods.find(f => f.barcode === scannedProductData.barcode);
+    if (!existing) {
+        addCustomFood(scannedProductData);
+    }
+
+    const food = existing || scannedProductData;
+    hideModal('barcode-modal');
+    stopBarcodeCamera();
+    openPortionModal(food);
+}
 
 function showModal(id, forceOpen) {
     const modal = document.getElementById(id);

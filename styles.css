@@ -1369,3 +1369,194 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
     opacity: 1;
 }
+
+/* ============= BARCODE SCANNER ============= */
+.header-btns-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-barcode {
+    border-color: var(--protein);
+    background: var(--protein-light);
+    color: var(--protein);
+}
+
+.btn-barcode:hover {
+    background: var(--protein);
+    color: white;
+}
+
+.barcode-modal-content {
+    max-width: 440px;
+}
+
+.barcode-body {
+    position: relative;
+}
+
+#barcode-reader {
+    width: 100%;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+#barcode-reader video {
+    border-radius: var(--radius-sm);
+}
+
+#barcode-reader img[alt="Info icon"] {
+    display: none;
+}
+
+#html5-qrcode-anchor-scan-type-change,
+#html5-qrcode-button-camera-permission,
+#html5-qrcode-button-camera-start,
+#html5-qrcode-button-camera-stop {
+    display: none !important;
+}
+
+#barcode-reader #qr-shaded-region {
+    border-color: var(--primary) !important;
+}
+
+.barcode-status {
+    text-align: center;
+    padding: 8px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.barcode-status.loading {
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.barcode-status.error {
+    color: var(--fat);
+}
+
+.barcode-status.success {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.barcode-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.barcode-divider::before,
+.barcode-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.barcode-manual-input {
+    display: flex;
+    gap: 8px;
+}
+
+.barcode-manual-input input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: var(--transition);
+    text-align: center;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.barcode-manual-input input:focus {
+    border-color: var(--primary);
+    background: white;
+}
+
+.barcode-manual-input .btn-primary {
+    width: auto;
+    padding: 10px 20px;
+    flex-shrink: 0;
+}
+
+.barcode-result {
+    margin-top: 16px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    animation: modalIn 0.3s ease;
+}
+
+.barcode-product-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.barcode-product-img {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.barcode-product-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.barcode-product-info h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+    line-height: 1.3;
+}
+
+.barcode-brand {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.barcode-nutrition-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--primary-bg);
+    border-radius: var(--radius-sm);
+    text-align: center;
+}
+
+.barcode-nutrition-item strong {
+    display: block;
+    font-size: 1rem;
+    color: var(--text);
+}
+
+.barcode-nutrition-item span {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+    .header-btns-group { gap: 6px; }
+    .btn-secondary-sm { padding: 5px 8px; font-size: 0.75rem; }
+}

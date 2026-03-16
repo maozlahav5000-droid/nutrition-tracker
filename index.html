@@ -16,6 +16,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -100,10 +101,16 @@
         <section class="add-food-section">
             <div class="section-header">
                 <h2>הוסף מאכל</h2>
-                <button id="open-custom-food" class="btn-secondary-sm" title="צור מוצר חדש">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg>
-                    מוצר חדש
-                </button>
+                <div class="header-btns-group">
+                    <button id="open-barcode-scanner" class="btn-secondary-sm btn-barcode" title="סרוק ברקוד">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 7V5a2 2 0 012-2h2"/><path d="M17 3h2a2 2 0 012 2v2"/><path d="M21 17v2a2 2 0 01-2 2h-2"/><path d="M7 21H5a2 2 0 01-2-2v-2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="11" y1="8" x2="11" y2="16"/><line x1="15" y1="8" x2="15" y2="16"/><line x1="19" y1="8" x2="19" y2="16"/></svg>
+                        ברקוד
+                    </button>
+                    <button id="open-custom-food" class="btn-secondary-sm" title="צור מוצר חדש">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg>
+                        מוצר חדש
+                    </button>
+                </div>
             </div>
             <div class="search-wrapper">
                 <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -322,6 +329,46 @@
                 </div>
                 <button type="submit" class="btn-primary">שמור מוצר</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Barcode Scanner Modal -->
+    <div id="barcode-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content barcode-modal-content">
+            <div class="modal-header">
+                <h2>סריקת ברקוד</h2>
+                <button class="close-btn" id="close-barcode">&times;</button>
+            </div>
+            <div class="barcode-body">
+                <div id="barcode-reader"></div>
+                <div id="barcode-status" class="barcode-status">
+                    <p>כוון את המצלמה לברקוד על המוצר</p>
+                </div>
+                <div class="barcode-manual">
+                    <div class="barcode-divider"><span>או הזן ידנית</span></div>
+                    <div class="barcode-manual-input">
+                        <input type="text" id="barcode-input" placeholder="הזן מספר ברקוד..." inputmode="numeric" autocomplete="off">
+                        <button id="barcode-search-btn" class="btn-primary">חפש</button>
+                    </div>
+                </div>
+            </div>
+            <div id="barcode-result" class="barcode-result" style="display:none">
+                <div class="barcode-product-header">
+                    <img id="barcode-product-img" class="barcode-product-img" src="" alt="" style="display:none">
+                    <div class="barcode-product-info">
+                        <h3 id="barcode-product-name"></h3>
+                        <span id="barcode-product-brand" class="barcode-brand"></span>
+                    </div>
+                </div>
+                <div class="barcode-nutrition-grid">
+                    <div class="barcode-nutrition-item"><strong id="barcode-cal">0</strong><span>קלוריות</span></div>
+                    <div class="barcode-nutrition-item"><strong id="barcode-prot">0</strong><span>חלבון</span></div>
+                    <div class="barcode-nutrition-item"><strong id="barcode-carb">0</strong><span>פחמימות</span></div>
+                    <div class="barcode-nutrition-item"><strong id="barcode-fat">0</strong><span>שומן</span></div>
+                </div>
+                <button id="barcode-add-btn" class="btn-primary">הוסף למעקב</button>
+            </div>
         </div>
     </div>
 
