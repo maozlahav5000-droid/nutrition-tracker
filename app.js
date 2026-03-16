@@ -1004,6 +1004,41 @@ function setBarcodeStatus(msg, type) {
     el.className = 'barcode-status' + (type ? ` ${type}` : '');
 }
 
+function getBarcodeCache() {
+    try {
+        return JSON.parse(localStorage.getItem('barcode_cache') || '{}');
+    } catch { return {}; }
+}
+
+function saveBarcodeCache(barcode, productData, brand, imgUrl) {
+    try {
+        const cache = getBarcodeCache();
+        cache[barcode] = { productData, brand, imgUrl, ts: Date.now() };
+        localStorage.setItem('barcode_cache', JSON.stringify(cache));
+    } catch { /* quota exceeded - ignore */ }
+}
+
+function showBarcodeProduct(productData, brand, imgUrl) {
+    scannedProductData = productData;
+
+    document.getElementById('barcode-product-name').textContent = productData.name;
+    document.getElementById('barcode-product-brand').textContent = brand;
+    document.getElementById('barcode-cal').textContent = productData.calories;
+    document.getElementById('barcode-prot').textContent = productData.protein + 'g';
+    document.getElementById('barcode-carb').textContent = productData.carbs + 'g';
+    document.getElementById('barcode-fat').textContent = productData.fat + 'g';
+
+    const imgEl = document.getElementById('barcode-product-img');
+    if (imgUrl) {
+        imgEl.src = imgUrl;
+        imgEl.style.display = 'block';
+    } else {
+        imgEl.style.display = 'none';
+    }
+
+    document.getElementById('barcode-result').style.display = 'block';
+}
+
 async function lookupBarcode(barcode) {
     barcode = barcode.trim();
     if (!barcode) return;
@@ -1011,8 +1046,16 @@ async function lookupBarcode(barcode) {
     setBarcodeStatus('מחפש מוצר...', 'loading');
     document.getElementById('barcode-result').style.display = 'none';
 
+    const cached = getBarcodeCache()[barcode];
+    if (cached) {
+        setBarcodeStatus('מוצר נמצא!', 'success');
+        showBarcodeProduct(cached.productData, cached.brand, cached.imgUrl);
+        return;
+    }
+
     try {
-        const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+        const apiFields = 'product_name,product_name_he,generic_name,brands,nutriments,serving_quantity,serving_size,product_quantity,image_small_url,image_front_small_url,categories_tags';
+        const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=${apiFields}`);
         const data = await resp.json();
 
         if (data.status !== 1 || !data.product) {
@@ -1042,7 +1085,7 @@ async function lookupBarcode(barcode) {
             servingDesc = p.serving_size;
         }
 
-        scannedProductData = {
+        const productData = {
             id: 'bc_' + barcode,
             name,
             category: guessCategoryFromProduct(p),
@@ -1057,24 +1100,9 @@ async function lookupBarcode(barcode) {
             isCustom: true
         };
 
+        saveBarcodeCache(barcode, productData, brand, imgUrl);
         setBarcodeStatus('מוצר נמצא!', 'success');
-
-        document.getElementById('barcode-product-name').textContent = name;
-        document.getElementById('barcode-product-brand').textContent = brand;
-        document.getElementById('barcode-cal').textContent = cal;
-        document.getElementById('barcode-prot').textContent = prot + 'g';
-        document.getElementById('barcode-carb').textContent = carb + 'g';
-        document.getElementById('barcode-fat').textContent = fat + 'g';
-
-        const imgEl = document.getElementById('barcode-product-img');
-        if (imgUrl) {
-            imgEl.src = imgUrl;
-            imgEl.style.display = 'block';
-        } else {
-            imgEl.style.display = 'none';
-        }
-
-        document.getElementById('barcode-result').style.display = 'block';
+        showBarcodeProduct(productData, brand, imgUrl);
 
     } catch {
         setBarcodeStatus('שגיאת חיבור. בדוק את האינטרנט ונסה שוב.', 'error');
