@@ -45,6 +45,7 @@ const state = {
     dailyLog: [],
     goals: { calories: 0, protein: 0, carbs: 0, fat: 0 },
     customFoods: [],
+    hiddenFoods: [],
     selectedFood: null,
     selectedMeal: 'breakfast',
     activeCategory: null,
@@ -95,6 +96,7 @@ function init() {
 function enterApp() {
     renderUserHeader();
     loadCustomFoods();
+    loadHiddenFoods();
     loadProfile();
     if (!state.profile) {
         showModal('profile-modal', true);
@@ -138,6 +140,7 @@ function switchUser(userId) {
     state.profile = null;
     state.dailyLog = [];
     state.customFoods = [];
+    state.hiddenFoods = [];
     state.currentDate = new Date();
     state.goals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
     hideModal('user-modal');
@@ -209,7 +212,9 @@ function saveCustomFoods() {
 }
 
 function getAllFoods() {
-    return [...state.customFoods, ...FOOD_DATABASE];
+    const hidden = new Set(state.hiddenFoods);
+    const dbFiltered = FOOD_DATABASE.filter(f => !hidden.has(f.id));
+    return [...state.customFoods, ...dbFiltered];
 }
 
 function addCustomFood(food) {
@@ -220,6 +225,31 @@ function addCustomFood(food) {
 function deleteCustomFood(foodId) {
     state.customFoods = state.customFoods.filter(f => f.id !== foodId);
     saveCustomFoods();
+}
+
+function loadHiddenFoods() {
+    const data = localStorage.getItem(uKey('hidden_foods'));
+    state.hiddenFoods = data ? JSON.parse(data) : [];
+}
+
+function saveHiddenFoods() {
+    localStorage.setItem(uKey('hidden_foods'), JSON.stringify(state.hiddenFoods));
+}
+
+function hideFood(foodId) {
+    if (!state.hiddenFoods.includes(foodId)) {
+        state.hiddenFoods.push(foodId);
+        saveHiddenFoods();
+    }
+}
+
+function deleteAnyFood(foodId) {
+    const isCustom = state.customFoods.some(f => String(f.id) === String(foodId));
+    if (isCustom) {
+        deleteCustomFood(foodId);
+    } else {
+        hideFood(Number(foodId) || foodId);
+    }
 }
 
 // ==================== EVENT LISTENERS ====================
@@ -830,14 +860,12 @@ function renderSearchResults(results) {
         return;
     }
     container.innerHTML = results.map(food => {
-        const isCustom = food.isCustom;
-        const badge = isCustom ? '<span class="result-custom-badge">שלי</span>' : '';
-        const deleteBtn = isCustom ? `<button class="result-delete-custom" data-delete-cf="${food.id}" title="מחק מוצר">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-        </button>` : '';
+        const badge = food.isCustom ? '<span class="result-custom-badge">שלי</span>' : '';
         return `
         <div class="search-result-item" data-food-id="${food.id}">
-            ${deleteBtn}
+            <button class="result-delete-btn" data-delete-id="${food.id}" title="הסר מוצר">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
             <div class="result-main">
                 <div class="result-name">${badge}${food.name}</div>
                 <div class="result-category">${food.category} · ${food.servingDescription} (${food.servingSize}g)</div>
@@ -848,19 +876,39 @@ function renderSearchResults(results) {
 
     container.querySelectorAll('.search-result-item').forEach(item => {
         item.addEventListener('click', (e) => {
-            if (e.target.closest('.result-delete-custom')) return;
+            if (e.target.closest('.result-delete-btn')) return;
             const foodId = item.dataset.foodId;
             const food = findFoodById(foodId);
             if (food) openPortionModal(food);
         });
     });
 
-    container.querySelectorAll('.result-delete-custom').forEach(btn => {
+    container.querySelectorAll('.result-delete-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const id = btn.dataset.deleteCf;
-            deleteCustomFood(id);
-            searchFood();
+            const id = btn.dataset.deleteId;
+            const item = btn.closest('.search-result-item');
+            const foodName = item.querySelector('.result-name').textContent;
+
+            item.classList.add('confirm-delete');
+            item.innerHTML = `
+                <span class="result-confirm-text">להסיר את "${foodName}"?</span>
+                <div class="result-confirm-actions">
+                    <button class="result-confirm-yes">הסר</button>
+                    <button class="result-confirm-no">ביטול</button>
+                </div>
+            `;
+
+            item.querySelector('.result-confirm-yes').addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                deleteAnyFood(id);
+                searchFood();
+            });
+
+            item.querySelector('.result-confirm-no').addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                searchFood();
+            });
         });
     });
 }
@@ -919,9 +967,41 @@ function renderFoodLog() {
     container.innerHTML = html;
     container.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            state.dailyLog = state.dailyLog.filter(e => e.id !== parseInt(btn.dataset.entryId));
-            saveDailyLog();
-            renderAll();
+            const logItem = btn.closest('.log-item');
+            if (logItem.classList.contains('confirm-active')) return;
+
+            logItem.classList.add('confirm-active');
+            const entryId = parseInt(btn.dataset.entryId);
+            const entry = state.dailyLog.find(e => e.id === entryId);
+            const name = entry ? entry.name : '';
+
+            const overlay = document.createElement('div');
+            overlay.className = 'delete-confirm-overlay';
+            overlay.innerHTML = `
+                <span class="delete-confirm-text">למחוק את "${name}"?</span>
+                <div class="delete-confirm-actions">
+                    <button class="delete-confirm-yes">מחק</button>
+                    <button class="delete-confirm-no">ביטול</button>
+                </div>
+            `;
+            logItem.appendChild(overlay);
+
+            const autoCancel = setTimeout(() => cancel(), 4000);
+
+            function cancel() {
+                clearTimeout(autoCancel);
+                logItem.classList.remove('confirm-active');
+                overlay.remove();
+            }
+
+            overlay.querySelector('.delete-confirm-yes').addEventListener('click', () => {
+                clearTimeout(autoCancel);
+                state.dailyLog = state.dailyLog.filter(e => e.id !== entryId);
+                saveDailyLog();
+                renderAll();
+            });
+
+            overlay.querySelector('.delete-confirm-no').addEventListener('click', cancel);
         });
     });
 }
