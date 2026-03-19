@@ -424,28 +424,55 @@ body {
     margin-right: 6px;
 }
 
-.result-delete-btn {
+.result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+    margin-right: 4px;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.search-result-item:hover .result-actions {
+    opacity: 1;
+}
+
+.result-delete-btn,
+.result-edit-btn {
     background: none;
     border: none;
     color: var(--text-muted);
     cursor: pointer;
     padding: 4px;
-    margin-right: 4px;
     border-radius: 4px;
     transition: var(--transition);
     display: flex;
     align-items: center;
-    flex-shrink: 0;
-    opacity: 0;
-}
-
-.search-result-item:hover .result-delete-btn {
-    opacity: 1;
 }
 
 .result-delete-btn:hover {
     color: var(--fat);
     background: var(--fat-light);
+}
+
+.result-edit-btn:hover {
+    color: var(--protein);
+    background: var(--protein-light);
+}
+
+.result-edit-input {
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text);
+    border: 2px solid var(--protein);
+    border-radius: 6px;
+    padding: 3px 8px;
+    background: var(--card);
+    outline: none;
+    width: 100%;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .search-result-item.confirm-delete {
