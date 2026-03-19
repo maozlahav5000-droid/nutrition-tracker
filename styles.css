@@ -1696,12 +1696,50 @@ input[type="number"]::-webkit-outer-spin-button {
     min-width: 0;
 }
 
+.barcode-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .barcode-product-info h3 {
     font-size: 1rem;
     font-weight: 600;
     color: var(--text);
     margin-bottom: 2px;
     line-height: 1.3;
+}
+
+.barcode-edit-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.barcode-edit-btn:hover {
+    color: var(--protein);
+    background: var(--protein-light);
+}
+
+.barcode-name-input {
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    border: 2px solid var(--protein);
+    border-radius: 6px;
+    padding: 3px 8px;
+    background: var(--card);
+    outline: none;
+    width: 100%;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .barcode-brand {
@@ -1734,4 +1772,6 @@ input[type="number"]::-webkit-outer-spin-button {
 @media (max-width: 480px) {
     .header-btns-group { gap: 6px; }
     .btn-secondary-sm { padding: 5px 8px; font-size: 0.75rem; }
+    .result-actions { opacity: 1; }
+    .user-card-delete { opacity: 1; }
 }

@@ -388,6 +388,7 @@ function setupEventListeners() {
         }
     });
     document.getElementById('barcode-add-btn').addEventListener('click', handleBarcodeAdd);
+    document.getElementById('barcode-edit-name').addEventListener('click', handleBarcodeEditName);
 }
 
 function handleCreateUser() {
@@ -1188,9 +1189,13 @@ function saveBarcodeCache(barcode, productData, brand, imgUrl) {
 }
 
 function showBarcodeProduct(productData, brand, imgUrl) {
-    scannedProductData = productData;
+    const existing = state.customFoods.find(f => f.barcode === productData.barcode);
+    if (!existing) {
+        addCustomFood(productData);
+    }
+    scannedProductData = existing || productData;
 
-    document.getElementById('barcode-product-name').textContent = productData.name;
+    document.getElementById('barcode-product-name').textContent = scannedProductData.name;
     document.getElementById('barcode-product-brand').textContent = brand;
     document.getElementById('barcode-cal').textContent = productData.calories;
     document.getElementById('barcode-prot').textContent = productData.protein + 'g';
@@ -1295,18 +1300,46 @@ function guessCategoryFromProduct(product) {
     return 'מאכלים מוכנים';
 }
 
-function handleBarcodeAdd() {
+function handleBarcodeEditName() {
     if (!scannedProductData) return;
+    const nameEl = document.getElementById('barcode-product-name');
+    const editBtn = document.getElementById('barcode-edit-name');
+    const currentName = nameEl.textContent;
 
-    const existing = state.customFoods.find(f => f.barcode === scannedProductData.barcode);
-    if (!existing) {
-        addCustomFood(scannedProductData);
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'barcode-name-input';
+    input.value = currentName;
+    input.maxLength = 40;
+
+    nameEl.textContent = '';
+    nameEl.appendChild(input);
+    editBtn.style.display = 'none';
+    input.focus();
+    input.select();
+
+    function save() {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+            scannedProductData.name = newName;
+            renameFood(scannedProductData.id, newName);
+        }
+        nameEl.textContent = scannedProductData.name;
+        editBtn.style.display = '';
     }
 
-    const food = existing || scannedProductData;
+    input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); save(); }
+        if (ev.key === 'Escape') { ev.preventDefault(); nameEl.textContent = currentName; editBtn.style.display = ''; }
+    });
+    input.addEventListener('blur', save);
+}
+
+function handleBarcodeAdd() {
+    if (!scannedProductData) return;
     hideModal('barcode-modal');
     stopBarcodeCamera();
-    openPortionModal(food);
+    openPortionModal(scannedProductData);
 }
 
 function showModal(id, forceOpen) {
