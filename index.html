@@ -120,16 +120,24 @@
                         <div class="ai-msg ai-msg-bot">
                             <div class="ai-msg-text">היי! אני נוטרי, התזונאי האישי שלך. ספר לי מה אכלת ואני אפרק לך את הארוחה לפרטים — קלוריות, חלבון, פחמימות ושומן, עם טיפים והמלצות.
 
-אפשר גם לשאול אותי:
-- "כמה חלבון יש ב-200 גרם חזה עוף?" — חישובים מדויקים לפי גרמים
-- "מה כדאי לי לאכול אחרי אימון?" — ייעוץ מותאם ליעדים שלך
-- "האם חומוס זה בריא?" — שאלות תזונה כלליות
+אפשר גם:
+- לצלם תווית ערכים תזונתיים ולצרף תמונה — אני אחלץ הכל אוטומטית
+- "כמה חלבון ב-200 גרם חזה עוף?" — חישובים מדויקים
+- "מה כדאי לאכול אחרי אימון?" — ייעוץ מותאם ליעדים שלך
 
 מה אכלת היום?</div>
                         </div>
                     </div>
+                    <div class="ai-img-preview" id="ai-img-preview" style="display:none">
+                        <img id="ai-img-thumb" src="" alt="">
+                        <button id="ai-img-remove" class="ai-img-remove" title="הסר תמונה">&times;</button>
+                    </div>
                     <div class="ai-chat-input-bar">
-                        <input type="text" id="ai-chat-input" placeholder="מה אכלת? שאל שאלה, בקש חישוב..." autocomplete="off">
+                        <button id="ai-img-btn" class="ai-img-btn" title="צרף תמונה של ערכים תזונתיים">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        </button>
+                        <input type="file" id="ai-img-input" accept="image/*" style="display:none">
+                        <input type="text" id="ai-chat-input" placeholder="מה אכלת? צרף תמונה, שאל שאלה..." autocomplete="off">
                         <button id="ai-chat-send" class="ai-send-btn" title="שלח">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                         </button>

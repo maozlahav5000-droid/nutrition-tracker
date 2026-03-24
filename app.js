@@ -1263,6 +1263,8 @@ const AI_SYSTEM_PROMPT = `אתה תזונאי קליני מוסמך (R.D.) עם 
 - חישובי מאקרו: אתה מחשב ערכים תזונתיים בצורה מדויקת על בסיס USDA, צמרת ומאגרי מזון ישראליים.
 - הרכב גוף: אתה מבין BMR, TDEE, חלוקת מאקרו (protein timing, carb cycling), ויודע להתאים המלצות למטרות שונות.
 - מטבח ישראלי: אתה מכיר לעומק את המטבח הישראלי — שווארמה, פלאפל, חומוס, שקשוקה, סלטים, על האש, ארוחות שישי, ומאכלים מזרחיים.
+- ניתוח תמונות: כשהמשתמש שולח תמונה של תווית ערכים תזונתיים, אריזת מוצר, או צלחת אוכל — אתה מנתח אותה, מחלץ את כל הערכים, מזהה את המוצר, ונותן הקשר מקצועי. אתה תמיד מחשב את הערכים למנה שלמה (לא רק ל-100 גרם) ומציין את גודל המנה.
+- חיפוש באינטרנט: יש לך גישה לחיפוש Google. השתמש בו כדי לאמת ערכים תזונתיים, למצוא מידע על מוצרים ספציפיים (כולל מוצרים ישראליים), ולתת תשובות מדויקות ועדכניות. אל תנחש — אם אתה לא בטוח, חפש.
 
 ## סגנון התקשורת שלך:
 - אתה מדבר בעברית טבעית, חמה ומקצועית — כמו תזונאי אמיתי בפגישה.
@@ -1298,6 +1300,7 @@ const AI_SYSTEM_PROMPT = `אתה תזונאי קליני מוסמך (R.D.) עם 
 - כל מאכל הוא פריט נפרד (אל תאחד "שיפוד עם פיתה" — תפריד ל"פרגית" ו"פיתה").`;
 
 let aiChatMessages = [];
+let pendingImage = null;
 
 function loadGeminiKey() {
     return localStorage.getItem('nutrition_gemini_key') || '';
@@ -1347,6 +1350,14 @@ function setupAiChat() {
             sendAiMessage();
         }
     });
+
+    const imgBtn = document.getElementById('ai-img-btn');
+    const imgInput = document.getElementById('ai-img-input');
+    const imgRemove = document.getElementById('ai-img-remove');
+
+    imgBtn.addEventListener('click', () => imgInput.click());
+    imgInput.addEventListener('change', handleImageSelect);
+    imgRemove.addEventListener('click', clearPendingImage);
 }
 
 function updateAiChatView() {
@@ -1362,15 +1373,64 @@ function updateAiChatView() {
     }
 }
 
+function handleImageSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        const base64Full = reader.result;
+        const base64Data = base64Full.split(',')[1];
+        const mimeType = file.type || 'image/jpeg';
+        pendingImage = { base64: base64Data, mimeType, preview: base64Full };
+
+        document.getElementById('ai-img-thumb').src = base64Full;
+        document.getElementById('ai-img-preview').style.display = 'flex';
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+}
+
+function clearPendingImage() {
+    pendingImage = null;
+    document.getElementById('ai-img-preview').style.display = 'none';
+    document.getElementById('ai-img-thumb').src = '';
+}
+
 function sendAiMessage() {
     const input = document.getElementById('ai-chat-input');
     const text = input.value.trim();
-    if (!text) return;
+    const hasImage = !!pendingImage;
+
+    if (!text && !hasImage) return;
 
     input.value = '';
-    appendChatMsg('user', text);
+    const imageData = pendingImage;
+
+    if (hasImage && text) {
+        appendChatMsgWithImage('user', text, imageData.preview);
+    } else if (hasImage) {
+        appendChatMsgWithImage('user', 'תנתח את הערכים התזונתיים בתמונה', imageData.preview);
+    } else {
+        appendChatMsg('user', text);
+    }
+
+    clearPendingImage();
     appendChatLoading();
-    callGemini(text);
+    callGemini(text || 'תנתח את הערכים התזונתיים בתמונה הזו ותחלץ את כל הנתונים.', imageData);
+}
+
+function appendChatMsgWithImage(role, text, imgSrc) {
+    const container = document.getElementById('ai-chat-messages');
+    const div = document.createElement('div');
+    div.className = `ai-msg ai-msg-${role}`;
+    div.innerHTML = `
+        <div class="ai-msg-text">
+            <img src="${imgSrc}" class="ai-chat-img" alt="תמונה">
+            ${text ? '<br>' + escapeHtml(text) : ''}
+        </div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
 }
 
 function appendChatMsg(role, content) {
@@ -1486,7 +1546,7 @@ function buildUserContext() {
     return parts.length ? '\n\nמידע על המשתמש:\n' + parts.join('\n') : '';
 }
 
-async function callGemini(userText) {
+async function callGemini(userText, imageData) {
     const key = loadGeminiKey();
     if (!key) {
         removeChatLoading();
@@ -1494,13 +1554,21 @@ async function callGemini(userText) {
         return;
     }
 
-    aiChatMessages.push({ role: 'user', parts: [{ text: userText }] });
+    const userParts = [{ text: userText }];
+    if (imageData) {
+        userParts.push({
+            inline_data: { mime_type: imageData.mimeType, data: imageData.base64 }
+        });
+    }
+
+    aiChatMessages.push({ role: 'user', parts: userParts });
 
     const systemPrompt = AI_SYSTEM_PROMPT + buildUserContext();
 
     const body = {
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: aiChatMessages,
+        tools: [{ google_search: {} }],
         generationConfig: {
             temperature: 0.7,
             maxOutputTokens: 8192
