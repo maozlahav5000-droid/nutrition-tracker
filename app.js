@@ -47,6 +47,7 @@ const state = {
     customFoods: [],
     hiddenFoods: [],
     renamedFoods: {},
+    editingFoodId: null,
     selectedFood: null,
     selectedMeal: 'breakfast',
     activeCategory: null,
@@ -435,11 +436,26 @@ function handleCreateUser() {
 
 // ==================== CUSTOM FOOD ====================
 
+function openEditFoodModal(food) {
+    state.editingFoodId = food.id;
+    document.getElementById('cf-name').value = food.name;
+    document.getElementById('cf-category').value = food.category || 'מאכלים מוכנים';
+    document.getElementById('cf-calories').value = food.calories;
+    document.getElementById('cf-protein').value = food.protein;
+    document.getElementById('cf-carbs').value = food.carbs;
+    document.getElementById('cf-fat').value = food.fat;
+    document.getElementById('cf-serving').value = food.servingSize || 100;
+    document.getElementById('cf-serving-desc').value = food.servingDescription || 'מנה';
+    showModal('custom-food-modal', false, true);
+}
+
 function handleCustomFoodSubmit(e) {
     e.preventDefault();
-    const food = {
-        id: 'c_' + Date.now(),
-        name: document.getElementById('cf-name').value.trim(),
+    const name = document.getElementById('cf-name').value.trim();
+    if (!name) return;
+
+    const values = {
+        name,
         category: document.getElementById('cf-category').value,
         calories: parseFloat(document.getElementById('cf-calories').value) || 0,
         protein: parseFloat(document.getElementById('cf-protein').value) || 0,
@@ -451,13 +467,29 @@ function handleCustomFoodSubmit(e) {
         isCustom: true
     };
 
-    if (!food.name) return;
-    addCustomFood(food);
+    let food;
+    if (state.editingFoodId) {
+        const existing = state.customFoods.find(f => String(f.id) === String(state.editingFoodId));
+        if (existing) {
+            Object.assign(existing, values);
+            saveCustomFoods();
+            food = existing;
+        } else {
+            hideFood(Number(state.editingFoodId) || state.editingFoodId);
+            food = { ...values, id: 'c_' + Date.now() };
+            addCustomFood(food);
+        }
+        state.editingFoodId = null;
+    } else {
+        food = { ...values, id: 'c_' + Date.now() };
+        addCustomFood(food);
+    }
+
     hideModal('custom-food-modal');
     document.getElementById('custom-food-form').reset();
     document.getElementById('cf-serving').value = 100;
     document.getElementById('cf-serving-desc').value = 'מנה';
-    openPortionModal(food);
+    searchFood();
 }
 
 // ==================== PASTE VALUES ====================
@@ -1056,6 +1088,9 @@ function renderSearchResults(results) {
                 <button class="result-edit-btn" data-edit-id="${food.id}" title="ערוך שם">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
+                <button class="result-edit-values-btn" data-editval-id="${food.id}" title="ערוך ערכים תזונתיים">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </button>
             </div>
             <div class="result-main">
                 <div class="result-name">${badge}${food.name}</div>
@@ -1067,7 +1102,7 @@ function renderSearchResults(results) {
 
     container.querySelectorAll('.search-result-item').forEach(item => {
         item.addEventListener('click', (e) => {
-            if (e.target.closest('.result-delete-btn') || e.target.closest('.result-edit-btn') || e.target.closest('.result-edit-input')) return;
+            if (e.target.closest('.result-delete-btn') || e.target.closest('.result-edit-btn') || e.target.closest('.result-edit-input') || e.target.closest('.result-edit-values-btn')) return;
             const foodId = item.dataset.foodId;
             const food = findFoodById(foodId);
             if (food) openPortionModal(food);
@@ -1112,6 +1147,15 @@ function renderSearchResults(results) {
                 if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
             });
             input.addEventListener('blur', save);
+        });
+    });
+
+    container.querySelectorAll('.result-edit-values-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.editvalId;
+            const food = findFoodById(id);
+            if (food) openEditFoodModal(food);
         });
     });
 
@@ -1959,7 +2003,7 @@ function handleBarcodeAdd() {
     openPortionModal(scannedProductData);
 }
 
-function showModal(id, forceOpen) {
+function showModal(id, forceOpen, isEdit) {
     const modal = document.getElementById(id);
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -1976,9 +2020,22 @@ function showModal(id, forceOpen) {
         document.getElementById('show-add-user').classList.remove('hidden');
     }
     if (id === 'custom-food-modal') {
-        document.getElementById('custom-food-form').reset();
-        document.getElementById('cf-serving').value = 100;
-        document.getElementById('cf-serving-desc').value = 'מנה';
+        const header = modal.querySelector('.modal-header h2');
+        const subtitle = modal.querySelector('.modal-subtitle');
+        const submitBtn = modal.querySelector('button[type="submit"]');
+        if (isEdit) {
+            header.textContent = 'עריכת ערכים תזונתיים';
+            subtitle.textContent = 'ערוך ערכים תזונתיים ל-100 גרם';
+            submitBtn.textContent = 'שמור שינויים';
+        } else {
+            header.textContent = 'מוצר חדש';
+            subtitle.textContent = 'הזן ערכים תזונתיים ל-100 גרם';
+            submitBtn.textContent = 'שמור מוצר';
+            state.editingFoodId = null;
+            document.getElementById('custom-food-form').reset();
+            document.getElementById('cf-serving').value = 100;
+            document.getElementById('cf-serving-desc').value = 'מנה';
+        }
     }
     if (id === 'quick-protein-modal') {
         document.getElementById('qp-protein').value = '';

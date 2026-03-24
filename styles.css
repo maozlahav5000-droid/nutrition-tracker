@@ -439,7 +439,8 @@ body {
 }
 
 .result-delete-btn,
-.result-edit-btn {
+.result-edit-btn,
+.result-edit-values-btn {
     background: none;
     border: none;
     color: var(--text-muted);
@@ -456,7 +457,8 @@ body {
     background: var(--fat-light);
 }
 
-.result-edit-btn:hover {
+.result-edit-btn:hover,
+.result-edit-values-btn:hover {
     color: var(--protein);
     background: var(--protein-light);
 }
