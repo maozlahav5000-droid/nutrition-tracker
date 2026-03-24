@@ -1253,19 +1253,43 @@ function createEmptyState() {
 
 // ==================== AI CHAT ====================
 
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const AI_SYSTEM_PROMPT = `אתה מומחה תזונה. המשתמש יספר לך מה הוא אכל ואתה צריך להחזיר ערכים תזונתיים.
+const AI_SYSTEM_PROMPT = `אתה יועץ תזונה מומחה ואישי, חכם וידידותי. אתה עוזר למשתמש לעקוב אחרי התזונה שלו ולקבל החלטות בריאות יותר.
 
-חוקים:
-- החזר אך ורק JSON תקין — מערך של אובייקטים.
-- כל אובייקט: { "name": "שם בעברית", "grams": מספר, "calories": מספר, "protein": מספר, "carbs": מספר, "fat": מספר }
-- הערכים הם לפי הכמות/מנה שהמשתמש תיאר (לא ל-100 גרם).
-- אם המשתמש לא ציין כמות, השתמש בגודל מנה סטנדרטי.
-- השתמש בנתונים תזונתיים אמינים ומדויקים.
-- אם לא ברור מה המשתמש אכל, החזר JSON עם שדה "clarification" במקום המערך, לדוגמה: { "clarification": "השאלה שלך בעברית" }
-- אל תוסיף טקסט מחוץ ל-JSON. אל תשתמש ב-markdown.`;
+אתה יודע לעשות הכל:
+1. **רישום אוכל** — המשתמש מספר מה אכל ואתה מחזיר ערכים תזונתיים מדויקים.
+2. **חישובים** — כמה חלבון/קלוריות/פחמימות/שומן יש בכמות מסוימת של מאכל (לדוגמה: "כמה חלבון ב-200 גרם חזה עוף?").
+3. **ייעוץ תזונתי** — המלצות לארוחות, תחליפים בריאים, טיפים לדיאטה, שאלות על תזונה.
+4. **תכנון ארוחות** — הצעות לארוחות שמתאימות ליעדים של המשתמש.
+5. **שאלות כלליות** — כל שאלה שקשורה לתזונה, בריאות, כושר, דיאטות.
+
+## פורמט תשובה
+
+החזר תמיד JSON תקין בלבד (בלי markdown, בלי טקסט מחוץ ל-JSON).
+
+### כשהמשתמש מדווח על אוכל או מבקש חישוב:
+החזר אובייקט עם שדה "foods" — מערך של פריטים:
+{ "foods": [{ "name": "שם בעברית", "grams": מספר, "calories": מספר, "protein": מספר, "carbs": מספר, "fat": מספר }], "message": "הערה קצרה אופציונלית" }
+
+- הערכים הם לפי הכמות שהמשתמש ציין (לא ל-100 גרם).
+- אם לא ציין כמות — השתמש בגודל מנה סטנדרטי.
+- השתמש בנתונים תזונתיים אמינים.
+- אפשר להוסיף "message" עם הערה, טיפ, או סיכום קצר.
+
+### כששואלים שאלה כללית, מבקשים ייעוץ, או שיחה רגילה:
+{ "message": "התשובה שלך בעברית" }
+
+### כשצריך הבהרה:
+{ "clarification": "השאלה שלך בעברית" }
+
+## חוקים:
+- ענה תמיד בעברית.
+- היה קצר וענייני אבל חם וידידותי.
+- אל תמציא ערכים — השתמש רק בנתונים תזונתיים אמינים ומוכרים.
+- כשהמשתמש שואל "כמה X יש ב-Y גרם של Z" — תמיד תחזיר גם foods עם החישוב וגם message עם הסבר.
+- התייחס להקשר של השיחה — אם המשתמש אמר שהוא רוצה לרדת במשקל, תן המלצות בהתאם.`;
 
 let aiChatMessages = [];
 
@@ -1432,6 +1456,26 @@ function addAiFoodToLog(food) {
     renderAll();
 }
 
+function buildUserContext() {
+    const parts = [];
+    if (state.profile) {
+        const p = state.profile;
+        parts.push(`פרופיל: ${p.gender === 'male' ? 'גבר' : 'אישה'}, גיל ${p.age}, ${p.weight} ק"ג, ${p.height} ס"מ, מטרה: ${p.goal === 'lose' ? 'ירידה במשקל' : p.goal === 'gain' ? 'עלייה במשקל' : 'שמירה'}.`);
+    }
+    if (state.goals.calories > 0) {
+        parts.push(`יעדים יומיים: ${state.goals.calories} קלוריות, ${state.goals.protein}g חלבון, ${state.goals.carbs}g פחמימות, ${state.goals.fat}g שומן.`);
+    }
+    const totals = getDailyTotals();
+    if (state.dailyLog.length > 0) {
+        parts.push(`נאכל היום: ${Math.round(totals.calories)} קלוריות, ${Math.round(totals.protein)}g חלבון, ${Math.round(totals.carbs)}g פחמימות, ${Math.round(totals.fat)}g שומן (${state.dailyLog.length} פריטים).`);
+        const remaining = state.goals.protein - totals.protein;
+        if (state.goals.protein > 0 && remaining > 0) {
+            parts.push(`נשאר ${Math.round(remaining)}g חלבון עד ליעד.`);
+        }
+    }
+    return parts.length ? '\n\nמידע על המשתמש:\n' + parts.join('\n') : '';
+}
+
 async function callGemini(userText) {
     const key = loadGeminiKey();
     if (!key) {
@@ -1442,12 +1486,14 @@ async function callGemini(userText) {
 
     aiChatMessages.push({ role: 'user', parts: [{ text: userText }] });
 
+    const systemPrompt = AI_SYSTEM_PROMPT + buildUserContext();
+
     const body = {
-        system_instruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
+        system_instruction: { parts: [{ text: systemPrompt }] },
         contents: aiChatMessages,
         generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 2048
+            temperature: 0.4,
+            maxOutputTokens: 4096
         }
     };
 
@@ -1483,10 +1529,16 @@ async function callGemini(userText) {
 
         if (parsed.clarification) {
             appendChatMsg('bot', parsed.clarification);
-        } else if (parsed.foods && parsed.foods.length > 0) {
-            appendFoodCards(parsed.foods);
         } else {
-            appendChatMsg('bot', text);
+            if (parsed.message) {
+                appendChatMsg('bot', parsed.message);
+            }
+            if (parsed.foods && parsed.foods.length > 0) {
+                appendFoodCards(parsed.foods);
+            }
+            if (!parsed.message && !parsed.foods?.length) {
+                appendChatMsg('bot', text);
+            }
         }
 
     } catch {
@@ -1501,17 +1553,39 @@ function parseGeminiResponse(text) {
 
     try {
         const json = JSON.parse(cleaned);
+
         if (json.clarification) {
             return { clarification: json.clarification };
         }
+
+        if (json.foods && Array.isArray(json.foods)) {
+            const foods = json.foods.filter(f => f.name && typeof f.calories === 'number');
+            return { foods, message: json.message || '' };
+        }
+
+        if (json.message && !json.foods) {
+            return { message: json.message };
+        }
+
         if (Array.isArray(json)) {
             const foods = json.filter(f => f.name && typeof f.calories === 'number');
-            return { foods };
+            if (foods.length) return { foods };
         }
+
         if (json.name && typeof json.calories === 'number') {
             return { foods: [json] };
         }
     } catch { /* not valid JSON, try extracting */ }
+
+    const objMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (objMatch) {
+        try {
+            const obj = JSON.parse(objMatch[0]);
+            if (obj.foods) return { foods: obj.foods.filter(f => f.name), message: obj.message || '' };
+            if (obj.message) return { message: obj.message };
+            if (obj.clarification) return { clarification: obj.clarification };
+        } catch { /* ignore */ }
+    }
 
     const arrMatch = cleaned.match(/\[[\s\S]*\]/);
     if (arrMatch) {
@@ -1522,7 +1596,7 @@ function parseGeminiResponse(text) {
         } catch { /* ignore */ }
     }
 
-    return { text: cleaned };
+    return { message: cleaned };
 }
 
 function escapeHtml(str) {

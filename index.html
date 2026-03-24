@@ -103,7 +103,7 @@
         <section class="ai-chat-section" id="ai-chat-section">
             <button class="ai-chat-toggle" id="ai-chat-toggle">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                <span>ספר לי מה אכלת</span>
+                <span>יועץ תזונה AI</span>
                 <svg class="ai-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ai-chat-body" id="ai-chat-body">
@@ -118,11 +118,16 @@
                 <div class="ai-chat-area" id="ai-chat-area" style="display:none">
                     <div class="ai-chat-messages" id="ai-chat-messages">
                         <div class="ai-msg ai-msg-bot">
-                            <div class="ai-msg-text">היי! ספר לי מה אכלת ואני אחשב לך את הערכים התזונתיים. לדוגמה: "אכלתי שניצל עם אורז וסלט"</div>
+                            <div class="ai-msg-text">היי! אני היועץ התזונתי שלך. אפשר לדבר איתי על הכל:
+
+- "אכלתי שניצל עם אורז וסלט" — ואני אחשב ערכים תזונתיים
+- "כמה חלבון יש ב-200 גרם חזה עוף?" — חישובים מדויקים
+- "מה כדאי לי לאכול לארוחת ערב?" — המלצות מותאמות ליעדים שלך
+- "איך אני יכול להעלות חלבון?" — טיפים וייעוץ</div>
                         </div>
                     </div>
                     <div class="ai-chat-input-bar">
-                        <input type="text" id="ai-chat-input" placeholder="מה אכלת?..." autocomplete="off">
+                        <input type="text" id="ai-chat-input" placeholder="מה אכלת? שאל שאלה, בקש חישוב..." autocomplete="off">
                         <button id="ai-chat-send" class="ai-send-btn" title="שלח">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                         </button>
