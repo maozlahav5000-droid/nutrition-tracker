@@ -1804,27 +1804,44 @@ input[type="number"]::-webkit-outer-spin-button {
     color: var(--text);
 }
 
-.ai-food-card-add {
-    align-self: flex-end;
-    background: var(--primary);
-    color: white;
+.ai-food-card-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.ai-food-card-add,
+.ai-food-card-save {
     border: none;
-    padding: 5px 14px;
+    padding: 5px 12px;
     border-radius: 6px;
     font-family: inherit;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
 }
 
-.ai-food-card-add:hover {
-    background: var(--primary-dark);
+.ai-food-card-add {
+    background: var(--primary);
+    color: white;
 }
 
-.ai-food-card-add:disabled {
+.ai-food-card-add:hover { background: var(--primary-dark); }
+
+.ai-food-card-save {
+    background: var(--protein-light);
+    color: var(--protein);
+    border: 1px solid var(--protein);
+}
+
+.ai-food-card-save:hover { background: var(--protein); color: white; }
+
+.ai-food-card-add:disabled,
+.ai-food-card-save:disabled {
     background: var(--border);
     color: var(--text-muted);
+    border-color: var(--border);
     cursor: default;
 }
 

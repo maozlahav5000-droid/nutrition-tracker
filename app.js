@@ -1480,7 +1480,10 @@ function appendFoodCards(foods) {
                     <div><strong>${food.carbs}g</strong>פחמימות</div>
                     <div><strong>${food.fat}g</strong>שומן</div>
                 </div>
-                <button class="ai-food-card-add" data-ai-idx="${i}">+ הוסף למעקב</button>
+                <div class="ai-food-card-buttons">
+                    <button class="ai-food-card-add" data-ai-idx="${i}">+ הוסף למעקב</button>
+                    <button class="ai-food-card-save" data-ai-idx="${i}">שמור למוצרים שלי</button>
+                </div>
             </div>`;
     });
     html += '</div>';
@@ -1498,6 +1501,17 @@ function appendFoodCards(foods) {
             btn.disabled = true;
         });
     });
+
+    div.querySelectorAll('.ai-food-card-save').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.aiIdx);
+            const food = foods[idx];
+            if (!food) return;
+            saveAiFoodToCustom(food);
+            btn.textContent = 'נשמר!';
+            btn.disabled = true;
+        });
+    });
 }
 
 function appendAiError(msg) {
@@ -1507,6 +1521,25 @@ function appendAiError(msg) {
     div.innerHTML = `<div class="ai-msg-text">${escapeHtml(msg)}</div>`;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
+}
+
+function saveAiFoodToCustom(food) {
+    const grams = food.grams || 100;
+    const ratio = 100 / grams;
+    const customFood = {
+        id: 'c_' + Date.now(),
+        name: food.name,
+        category: 'מאכלים מוכנים',
+        calories: Math.round((food.calories || 0) * ratio),
+        protein: +((food.protein || 0) * ratio).toFixed(1),
+        carbs: +((food.carbs || 0) * ratio).toFixed(1),
+        fat: +((food.fat || 0) * ratio).toFixed(1),
+        fiber: 0,
+        servingSize: Math.round(grams),
+        servingDescription: 'מנה',
+        isCustom: true
+    };
+    addCustomFood(customFood);
 }
 
 function addAiFoodToLog(food) {
