@@ -371,6 +371,32 @@ function setupEventListeners() {
     document.getElementById('close-custom-food').addEventListener('click', () => hideModal('custom-food-modal'));
     document.getElementById('custom-food-form').addEventListener('submit', handleCustomFoodSubmit);
 
+    // Quick protein modal
+    document.getElementById('open-quick-protein').addEventListener('click', () => showModal('quick-protein-modal'));
+    document.getElementById('close-quick-protein').addEventListener('click', () => hideModal('quick-protein-modal'));
+    document.getElementById('qp-add-btn').addEventListener('click', handleQuickProtein);
+
+    document.getElementById('qp-quick-btns').addEventListener('click', (e) => {
+        const btn = e.target.closest('.quick-btn');
+        if (!btn) return;
+        document.getElementById('qp-protein').value = btn.dataset.protein;
+        document.getElementById('qp-quick-btns').querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    });
+
+    document.getElementById('qp-meal-pills').addEventListener('click', (e) => {
+        const pill = e.target.closest('.meal-pill');
+        if (!pill) return;
+        document.getElementById('qp-meal-pills').querySelectorAll('.meal-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+    });
+
+    // Paste values modal
+    document.getElementById('open-paste-values').addEventListener('click', () => showModal('paste-modal'));
+    document.getElementById('close-paste').addEventListener('click', () => hideModal('paste-modal'));
+    document.getElementById('paste-textarea').addEventListener('input', parsePastedValues);
+    document.getElementById('paste-add-btn').addEventListener('click', handlePasteAdd);
+
     // Barcode scanner
     document.getElementById('open-barcode-scanner').addEventListener('click', openBarcodeScanner);
     document.getElementById('close-barcode').addEventListener('click', () => {
@@ -429,6 +455,136 @@ function handleCustomFoodSubmit(e) {
     document.getElementById('cf-serving').value = 100;
     document.getElementById('cf-serving-desc').value = 'מנה';
     openPortionModal(food);
+}
+
+// ==================== PASTE VALUES ====================
+
+function parsePastedValues() {
+    const text = document.getElementById('paste-textarea').value;
+    const preview = document.getElementById('paste-preview');
+    const addBtn = document.getElementById('paste-add-btn');
+
+    if (!text.trim()) {
+        preview.innerHTML = '';
+        preview.classList.remove('visible');
+        addBtn.disabled = true;
+        return;
+    }
+
+    const parsed = extractNutrition(text);
+
+    if (parsed.calories === 0 && parsed.protein === 0 && parsed.carbs === 0 && parsed.fat === 0) {
+        preview.innerHTML = '<div class="paste-error">לא זוהו ערכים תזונתיים. נסה פורמט אחר.</div>';
+        preview.classList.add('visible');
+        addBtn.disabled = true;
+        return;
+    }
+
+    preview.innerHTML = `
+        <div class="paste-parsed-grid">
+            <div class="paste-parsed-item"><strong>${parsed.calories}</strong><span>קלוריות</span></div>
+            <div class="paste-parsed-item"><strong>${parsed.protein}g</strong><span>חלבון</span></div>
+            <div class="paste-parsed-item"><strong>${parsed.carbs}g</strong><span>פחמימות</span></div>
+            <div class="paste-parsed-item"><strong>${parsed.fat}g</strong><span>שומן</span></div>
+        </div>
+    `;
+    preview.classList.add('visible');
+    addBtn.disabled = false;
+}
+
+function extractNutrition(text) {
+    const result = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    const lines = text.split(/\n/);
+
+    for (const line of lines) {
+        const num = parseFirstNumber(line);
+        if (num === null) continue;
+
+        if (/קלוריות|אנרגי|calories|energy|קק"ל|kcal/i.test(line) && !/מ(שומן|פחמימות|חלבון)/i.test(line)) {
+            result.calories = num;
+        } else if (/חלבון|protein/i.test(line)) {
+            result.protein = num;
+        } else if (/פחמימ|carb/i.test(line)) {
+            result.carbs = num;
+        } else if (/שומן|fat/i.test(line)) {
+            result.fat = num;
+        }
+    }
+
+    if (result.calories === 0 && (result.protein || result.carbs || result.fat)) {
+        result.calories = Math.round(result.protein * 4 + result.carbs * 4 + result.fat * 9);
+    }
+
+    return result;
+}
+
+function parseFirstNumber(line) {
+    const match = line.match(/[\d]+(?:[.,]\d+)?/);
+    if (!match) return null;
+    return +match[0].replace(',', '.');
+}
+
+function handlePasteAdd() {
+    const text = document.getElementById('paste-textarea').value;
+    const name = document.getElementById('paste-name').value.trim();
+    if (!text.trim()) return;
+
+    const parsed = extractNutrition(text);
+    if (parsed.calories === 0 && parsed.protein === 0 && parsed.carbs === 0 && parsed.fat === 0) return;
+
+    const food = {
+        id: 'c_' + Date.now(),
+        name: name || 'מוצר מודבק',
+        category: 'מאכלים מוכנים',
+        calories: parsed.calories,
+        protein: parsed.protein,
+        carbs: parsed.carbs,
+        fat: parsed.fat,
+        fiber: 0,
+        servingSize: 100,
+        servingDescription: 'מנה',
+        isCustom: true
+    };
+
+    addCustomFood(food);
+    hideModal('paste-modal');
+    openPortionModal(food);
+}
+
+// ==================== QUICK PROTEIN ====================
+
+function handleQuickProtein() {
+    const protein = parseFloat(document.getElementById('qp-protein').value);
+    if (!protein || protein <= 0) return;
+
+    const label = document.getElementById('qp-label').value.trim() || 'חלבון ידני';
+    const customCal = parseInt(document.getElementById('qp-calories').value);
+    const calories = customCal > 0 ? customCal : Math.round(protein * 4);
+
+    const activeMeal = document.querySelector('#qp-meal-pills .meal-pill.active');
+    const meal = activeMeal ? activeMeal.dataset.meal : state.selectedMeal;
+
+    state.dailyLog.push({
+        id: Date.now(),
+        foodId: 'qp_' + Date.now(),
+        name: label,
+        grams: 0,
+        calories,
+        protein: +protein.toFixed(1),
+        carbs: 0,
+        fat: 0,
+        meal,
+        time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+    });
+
+    saveDailyLog();
+    renderAll();
+    hideModal('quick-protein-modal');
+
+    document.getElementById('qp-protein').value = '';
+    document.getElementById('qp-calories').value = '';
+    document.getElementById('qp-label').value = '';
+    document.getElementById('qp-quick-btns').querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
 }
 
 // ==================== PROFILE ====================
@@ -1023,7 +1179,7 @@ function renderFoodLog() {
                 <div class="log-item">
                     <div class="log-item-info">
                         <div class="log-item-name">${item.name}</div>
-                        <div class="log-item-details">${item.grams}g · ${item.time}</div>
+                        <div class="log-item-details">${item.grams ? item.grams + 'g · ' : ''}${item.time}</div>
                     </div>
                     <div class="log-item-macros">
                         <div class="log-macro cal"><span class="log-macro-value">${item.calories}</span><span class="log-macro-label">קק"ל</span></div>
@@ -1362,6 +1518,21 @@ function showModal(id, forceOpen) {
         document.getElementById('custom-food-form').reset();
         document.getElementById('cf-serving').value = 100;
         document.getElementById('cf-serving-desc').value = 'מנה';
+    }
+    if (id === 'quick-protein-modal') {
+        document.getElementById('qp-protein').value = '';
+        document.getElementById('qp-calories').value = '';
+        document.getElementById('qp-label').value = '';
+        document.getElementById('qp-quick-btns').querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+        const pills = document.getElementById('qp-meal-pills').querySelectorAll('.meal-pill');
+        pills.forEach(p => p.classList.toggle('active', p.dataset.meal === state.selectedMeal));
+    }
+    if (id === 'paste-modal') {
+        document.getElementById('paste-textarea').value = '';
+        document.getElementById('paste-name').value = '';
+        document.getElementById('paste-preview').innerHTML = '';
+        document.getElementById('paste-preview').classList.remove('visible');
+        document.getElementById('paste-add-btn').disabled = true;
     }
 }
 

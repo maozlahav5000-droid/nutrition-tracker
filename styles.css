@@ -1563,6 +1563,129 @@ input[type="number"]::-webkit-outer-spin-button {
     color: white;
 }
 
+.btn-secondary-sm.btn-protein {
+    border-color: #8b5cf6;
+    background: #ede9fe;
+    color: #7c3aed;
+}
+
+.btn-secondary-sm.btn-protein:hover {
+    background: #7c3aed;
+    color: white;
+}
+
+.btn-secondary-sm.btn-paste {
+    border-color: #f59e0b;
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.btn-secondary-sm.btn-paste:hover {
+    background: #f59e0b;
+    color: white;
+}
+
+/* ============= PASTE VALUES MODAL ============= */
+.paste-modal-content {
+    max-width: 440px;
+}
+
+.paste-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+#paste-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    resize: vertical;
+    min-height: 120px;
+    transition: var(--transition);
+    line-height: 1.6;
+}
+
+#paste-textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+#paste-textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.paste-preview {
+    display: none;
+}
+
+.paste-preview.visible {
+    display: block;
+}
+
+.paste-parsed-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    background: var(--primary-bg);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+}
+
+.paste-parsed-item {
+    text-align: center;
+}
+
+.paste-parsed-item strong {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.paste-parsed-item span {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.paste-error {
+    text-align: center;
+    color: var(--fat);
+    font-size: 0.85rem;
+    padding: 10px;
+    background: var(--fat-light);
+    border-radius: var(--radius-sm);
+}
+
+/* ============= QUICK PROTEIN MODAL ============= */
+.quick-protein-content {
+    max-width: 400px;
+}
+
+.quick-protein-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.qp-quick-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.qp-quick-btns .quick-btn {
+    flex: 1;
+    min-width: 50px;
+}
+
+/* ============= BARCODE MODAL ============= */
 .barcode-modal-content {
     max-width: 440px;
 }
