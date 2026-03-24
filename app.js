@@ -1256,40 +1256,37 @@ function createEmptyState() {
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const AI_SYSTEM_PROMPT = `אתה יועץ תזונה מומחה ואישי, חכם וידידותי. אתה עוזר למשתמש לעקוב אחרי התזונה שלו ולקבל החלטות בריאות יותר.
+const AI_SYSTEM_PROMPT = `אתה יועץ תזונה אישי מומחה — חכם, חם, מעניין ומפורט. אתה מנהל שיחה טבעית ועשירה עם המשתמש.
 
-אתה יודע לעשות הכל:
-1. **רישום אוכל** — המשתמש מספר מה אכל ואתה מחזיר ערכים תזונתיים מדויקים.
-2. **חישובים** — כמה חלבון/קלוריות/פחמימות/שומן יש בכמות מסוימת של מאכל (לדוגמה: "כמה חלבון ב-200 גרם חזה עוף?").
-3. **ייעוץ תזונתי** — המלצות לארוחות, תחליפים בריאים, טיפים לדיאטה, שאלות על תזונה.
-4. **תכנון ארוחות** — הצעות לארוחות שמתאימות ליעדים של המשתמש.
-5. **שאלות כלליות** — כל שאלה שקשורה לתזונה, בריאות, כושר, דיאטות.
+## הסגנון שלך:
+- דבר בעברית טבעית, כאילו אתה חבר שהוא גם דיאטן.
+- תן תשובות מפורטות ומעניינות — לא יבשות ולא קצרות מדי.
+- הוסף טיפים, הקשר, נקודות למחשבה, והשוואות מעניינות.
+- שאל שאלות המשך כדי להבין טוב יותר מה המשתמש אכל (תוספות? שתייה? רטבים?).
+- תן הערכות ריאליסטיות (טווחים כשיש אי-ודאות).
+- התייחס ליעדים של המשתמש — אם הוא רוצה לרדת במשקל, ציין את זה. אם הוא מחפש חלבון, שים דגש על זה.
 
-## פורמט תשובה
+## מה אתה יודע לעשות:
+- ניתוח ארוחות: המשתמש מספר מה אכל ואתה נותן פירוט תזונתי מלא עם הקשר.
+- חישובי מאקרו: חישוב מדויק של ערכים תזונתיים לכמות מסוימת בגרמים.
+- ייעוץ ותכנון ארוחות: המלצות מותאמות אישית, תחליפים בריאים, רעיונות לארוחות.
+- שאלות תזונה כלליות: דיאטות, תוספים, תזמון ארוחות, בריאות.
 
-החזר תמיד JSON תקין בלבד (בלי markdown, בלי טקסט מחוץ ל-JSON).
+## פורמט תשובה:
 
-### כשהמשתמש מדווח על אוכל או מבקש חישוב:
-החזר אובייקט עם שדה "foods" — מערך של פריטים:
-{ "foods": [{ "name": "שם בעברית", "grams": מספר, "calories": מספר, "protein": מספר, "carbs": מספר, "fat": מספר }], "message": "הערה קצרה אופציונלית" }
+כתוב בטקסט חופשי ועשיר. ענה בצורה מפורטת וטבעית.
 
-- הערכים הם לפי הכמות שהמשתמש ציין (לא ל-100 גרם).
-- אם לא ציין כמות — השתמש בגודל מנה סטנדרטי.
-- השתמש בנתונים תזונתיים אמינים.
-- אפשר להוסיף "message" עם הערה, טיפ, או סיכום קצר.
+בנוסף, כשיש מאכלים קונקרטיים שהמשתמש אכל או שביקש חישוב עבורם — הוסף בסוף התשובה שלך (ורק בסוף) בלוק מיוחד בפורמט הזה:
 
-### כששואלים שאלה כללית, מבקשים ייעוץ, או שיחה רגילה:
-{ "message": "התשובה שלך בעברית" }
+:::FOODS:::
+[{"name": "שם", "grams": מספר, "calories": מספר, "protein": מספר, "carbs": מספר, "fat": מספר}]
+:::END:::
 
-### כשצריך הבהרה:
-{ "clarification": "השאלה שלך בעברית" }
-
-## חוקים:
-- ענה תמיד בעברית.
-- היה קצר וענייני אבל חם וידידותי.
-- אל תמציא ערכים — השתמש רק בנתונים תזונתיים אמינים ומוכרים.
-- כשהמשתמש שואל "כמה X יש ב-Y גרם של Z" — תמיד תחזיר גם foods עם החישוב וגם message עם הסבר.
-- התייחס להקשר של השיחה — אם המשתמש אמר שהוא רוצה לרדת במשקל, תן המלצות בהתאם.`;
+- הערכים הם לפי הכמות שהמשתמש תיאר (לא ל-100 גרם).
+- אם לא ציין כמות, העריך מנה סטנדרטית וציין זאת בטקסט.
+- השתמש בנתונים תזונתיים אמינים ומדויקים ככל האפשר.
+- אם אין מאכלים ספציפיים בתשובה (שאלה כללית, ייעוץ) — אל תוסיף את הבלוק הזה.
+- אל תשתמש ב-markdown (כוכביות וכו'). כתוב טקסט פשוט.`;
 
 let aiChatMessages = [];
 
@@ -1368,10 +1365,14 @@ function sendAiMessage() {
 }
 
 function appendChatMsg(role, content) {
+    if (!content || !content.trim()) return;
     const container = document.getElementById('ai-chat-messages');
     const div = document.createElement('div');
     div.className = `ai-msg ai-msg-${role}`;
-    div.innerHTML = `<div class="ai-msg-text">${escapeHtml(content)}</div>`;
+    const formatted = escapeHtml(content)
+        .replace(/\n{2,}/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+    div.innerHTML = `<div class="ai-msg-text">${formatted}</div>`;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
@@ -1492,8 +1493,8 @@ async function callGemini(userText) {
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: aiChatMessages,
         generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 4096
+            temperature: 0.7,
+            maxOutputTokens: 8192
         }
     };
 
@@ -1527,18 +1528,14 @@ async function callGemini(userText) {
 
         const parsed = parseGeminiResponse(text);
 
-        if (parsed.clarification) {
-            appendChatMsg('bot', parsed.clarification);
-        } else {
-            if (parsed.message) {
-                appendChatMsg('bot', parsed.message);
-            }
-            if (parsed.foods && parsed.foods.length > 0) {
-                appendFoodCards(parsed.foods);
-            }
-            if (!parsed.message && !parsed.foods?.length) {
-                appendChatMsg('bot', text);
-            }
+        if (parsed.text) {
+            appendChatMsg('bot', parsed.text);
+        }
+        if (parsed.foods && parsed.foods.length > 0) {
+            appendFoodCards(parsed.foods);
+        }
+        if (!parsed.text && !parsed.foods?.length) {
+            appendChatMsg('bot', text);
         }
 
     } catch {
@@ -1548,55 +1545,54 @@ async function callGemini(userText) {
     }
 }
 
-function parseGeminiResponse(text) {
-    const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+function parseGeminiResponse(rawText) {
+    let text = rawText;
+    let foods = null;
 
-    try {
-        const json = JSON.parse(cleaned);
-
-        if (json.clarification) {
-            return { clarification: json.clarification };
-        }
-
-        if (json.foods && Array.isArray(json.foods)) {
-            const foods = json.foods.filter(f => f.name && typeof f.calories === 'number');
-            return { foods, message: json.message || '' };
-        }
-
-        if (json.message && !json.foods) {
-            return { message: json.message };
-        }
-
-        if (Array.isArray(json)) {
-            const foods = json.filter(f => f.name && typeof f.calories === 'number');
-            if (foods.length) return { foods };
-        }
-
-        if (json.name && typeof json.calories === 'number') {
-            return { foods: [json] };
-        }
-    } catch { /* not valid JSON, try extracting */ }
-
-    const objMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (objMatch) {
+    const foodsMatch = text.match(/:::FOODS:::\s*([\s\S]*?)\s*:::END:::/);
+    if (foodsMatch) {
+        text = text.replace(foodsMatch[0], '').trim();
         try {
-            const obj = JSON.parse(objMatch[0]);
-            if (obj.foods) return { foods: obj.foods.filter(f => f.name), message: obj.message || '' };
-            if (obj.message) return { message: obj.message };
-            if (obj.clarification) return { clarification: obj.clarification };
-        } catch { /* ignore */ }
+            const arr = JSON.parse(foodsMatch[1].replace(/```json\s*/gi, '').replace(/```/g, '').trim());
+            if (Array.isArray(arr)) {
+                foods = arr.filter(f => f.name && typeof f.calories === 'number');
+            }
+        } catch { /* ignore parse error */ }
     }
 
-    const arrMatch = cleaned.match(/\[[\s\S]*\]/);
-    if (arrMatch) {
+    if (!foods) {
+        const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
         try {
-            const arr = JSON.parse(arrMatch[0]);
-            const foods = arr.filter(f => f.name && typeof f.calories === 'number');
-            if (foods.length) return { foods };
-        } catch { /* ignore */ }
+            const json = JSON.parse(cleaned);
+            if (json.foods && Array.isArray(json.foods)) {
+                foods = json.foods.filter(f => f.name && typeof f.calories === 'number');
+                text = json.message || '';
+            } else if (Array.isArray(json)) {
+                foods = json.filter(f => f.name && typeof f.calories === 'number');
+                text = '';
+            } else if (json.message) {
+                text = json.message;
+            }
+        } catch { /* not JSON — keep as text */ }
     }
 
-    return { message: cleaned };
+    if (!foods) {
+        const arrMatch = text.match(/\[[\s\S]*?\]/);
+        if (arrMatch) {
+            try {
+                const arr = JSON.parse(arrMatch[0]);
+                const parsed = arr.filter(f => f.name && typeof f.calories === 'number');
+                if (parsed.length) {
+                    foods = parsed;
+                    text = text.replace(arrMatch[0], '').trim();
+                }
+            } catch { /* ignore */ }
+        }
+    }
+
+    text = text.replace(/\*\*/g, '').replace(/^#+\s*/gm, '').trim();
+
+    return { text: text || '', foods: foods && foods.length ? foods : null };
 }
 
 function escapeHtml(str) {
