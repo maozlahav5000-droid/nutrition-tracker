@@ -415,6 +415,9 @@ function setupEventListeners() {
     });
     document.getElementById('barcode-add-btn').addEventListener('click', handleBarcodeAdd);
     document.getElementById('barcode-edit-name').addEventListener('click', handleBarcodeEditName);
+
+    // AI Chat
+    setupAiChat();
 }
 
 function handleCreateUser() {
@@ -1248,7 +1251,285 @@ function createEmptyState() {
     return div;
 }
 
-// ==================== MODAL HELPERS ====================
+// ==================== AI CHAT ====================
+
+const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+const AI_SYSTEM_PROMPT = `אתה מומחה תזונה. המשתמש יספר לך מה הוא אכל ואתה צריך להחזיר ערכים תזונתיים.
+
+חוקים:
+- החזר אך ורק JSON תקין — מערך של אובייקטים.
+- כל אובייקט: { "name": "שם בעברית", "grams": מספר, "calories": מספר, "protein": מספר, "carbs": מספר, "fat": מספר }
+- הערכים הם לפי הכמות/מנה שהמשתמש תיאר (לא ל-100 גרם).
+- אם המשתמש לא ציין כמות, השתמש בגודל מנה סטנדרטי.
+- השתמש בנתונים תזונתיים אמינים ומדויקים.
+- אם לא ברור מה המשתמש אכל, החזר JSON עם שדה "clarification" במקום המערך, לדוגמה: { "clarification": "השאלה שלך בעברית" }
+- אל תוסיף טקסט מחוץ ל-JSON. אל תשתמש ב-markdown.`;
+
+let aiChatMessages = [];
+
+function loadGeminiKey() {
+    return localStorage.getItem('nutrition_gemini_key') || '';
+}
+
+function saveGeminiKey(key) {
+    localStorage.setItem('nutrition_gemini_key', key);
+}
+
+function setupAiChat() {
+    const section = document.getElementById('ai-chat-section');
+    const toggle = document.getElementById('ai-chat-toggle');
+    const keySaveBtn = document.getElementById('ai-key-save');
+    const keyInput = document.getElementById('ai-key-input');
+    const sendBtn = document.getElementById('ai-chat-send');
+    const chatInput = document.getElementById('ai-chat-input');
+    const changeKeyBtn = document.getElementById('ai-change-key');
+
+    toggle.addEventListener('click', () => {
+        section.classList.toggle('expanded');
+        if (section.classList.contains('expanded')) {
+            updateAiChatView();
+        }
+    });
+
+    keySaveBtn.addEventListener('click', () => {
+        const key = keyInput.value.trim();
+        if (!key) return;
+        saveGeminiKey(key);
+        keyInput.value = '';
+        updateAiChatView();
+    });
+
+    keyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') keySaveBtn.click();
+    });
+
+    changeKeyBtn.addEventListener('click', () => {
+        localStorage.removeItem('nutrition_gemini_key');
+        updateAiChatView();
+    });
+
+    sendBtn.addEventListener('click', () => sendAiMessage());
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendAiMessage();
+        }
+    });
+}
+
+function updateAiChatView() {
+    const key = loadGeminiKey();
+    const setup = document.getElementById('ai-key-setup');
+    const area = document.getElementById('ai-chat-area');
+    if (key) {
+        setup.style.display = 'none';
+        area.style.display = 'flex';
+    } else {
+        setup.style.display = 'block';
+        area.style.display = 'none';
+    }
+}
+
+function sendAiMessage() {
+    const input = document.getElementById('ai-chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    appendChatMsg('user', text);
+    appendChatLoading();
+    callGemini(text);
+}
+
+function appendChatMsg(role, content) {
+    const container = document.getElementById('ai-chat-messages');
+    const div = document.createElement('div');
+    div.className = `ai-msg ai-msg-${role}`;
+    div.innerHTML = `<div class="ai-msg-text">${escapeHtml(content)}</div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function appendChatLoading() {
+    const container = document.getElementById('ai-chat-messages');
+    const div = document.createElement('div');
+    div.className = 'ai-msg ai-msg-bot';
+    div.id = 'ai-loading';
+    div.innerHTML = '<div class="ai-loading-dots"><span></span><span></span><span></span></div>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function removeChatLoading() {
+    const el = document.getElementById('ai-loading');
+    if (el) el.remove();
+}
+
+function appendFoodCards(foods) {
+    const container = document.getElementById('ai-chat-messages');
+    const div = document.createElement('div');
+    div.className = 'ai-msg ai-msg-bot';
+
+    let html = '<div class="ai-food-cards">';
+    foods.forEach((food, i) => {
+        html += `
+            <div class="ai-food-card" data-ai-food-idx="${i}">
+                <div class="ai-food-card-header">
+                    <span class="ai-food-card-name">${escapeHtml(food.name)}</span>
+                    <span class="ai-food-card-grams">${food.grams}g</span>
+                </div>
+                <div class="ai-food-card-macros">
+                    <div><strong>${food.calories}</strong>קלוריות</div>
+                    <div><strong>${food.protein}g</strong>חלבון</div>
+                    <div><strong>${food.carbs}g</strong>פחמימות</div>
+                    <div><strong>${food.fat}g</strong>שומן</div>
+                </div>
+                <button class="ai-food-card-add" data-ai-idx="${i}">+ הוסף למעקב</button>
+            </div>`;
+    });
+    html += '</div>';
+    div.innerHTML = html;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+
+    div.querySelectorAll('.ai-food-card-add').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.aiIdx);
+            const food = foods[idx];
+            if (!food) return;
+            addAiFoodToLog(food);
+            btn.textContent = 'נוסף!';
+            btn.disabled = true;
+        });
+    });
+}
+
+function appendAiError(msg) {
+    const container = document.getElementById('ai-chat-messages');
+    const div = document.createElement('div');
+    div.className = 'ai-msg ai-msg-error';
+    div.innerHTML = `<div class="ai-msg-text">${escapeHtml(msg)}</div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function addAiFoodToLog(food) {
+    state.dailyLog.push({
+        id: Date.now() + Math.random(),
+        foodId: 'ai_' + Date.now(),
+        name: food.name,
+        grams: Math.round(food.grams || 0),
+        calories: Math.round(food.calories || 0),
+        protein: +(food.protein || 0).toFixed(1),
+        carbs: +(food.carbs || 0).toFixed(1),
+        fat: +(food.fat || 0).toFixed(1),
+        meal: state.selectedMeal,
+        time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+    });
+    saveDailyLog();
+    renderAll();
+}
+
+async function callGemini(userText) {
+    const key = loadGeminiKey();
+    if (!key) {
+        removeChatLoading();
+        appendAiError('לא הוגדר מפתח API. לחץ על "החלף מפתח API" להגדרה.');
+        return;
+    }
+
+    aiChatMessages.push({ role: 'user', parts: [{ text: userText }] });
+
+    const body = {
+        system_instruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
+        contents: aiChatMessages,
+        generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2048
+        }
+    };
+
+    try {
+        const resp = await fetch(`${GEMINI_URL}?key=${key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        removeChatLoading();
+
+        if (!resp.ok) {
+            const errData = await resp.json().catch(() => null);
+            const errMsg = errData?.error?.message || `שגיאה ${resp.status}`;
+            if (resp.status === 400 || resp.status === 403) {
+                appendAiError(`מפתח API לא תקין. ${errMsg}`);
+            } else if (resp.status === 429) {
+                appendAiError('חרגת ממגבלת הבקשות. נסה שוב בעוד דקה.');
+            } else {
+                appendAiError(`שגיאה: ${errMsg}`);
+            }
+            aiChatMessages.pop();
+            return;
+        }
+
+        const data = await resp.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        aiChatMessages.push({ role: 'model', parts: [{ text }] });
+
+        const parsed = parseGeminiResponse(text);
+
+        if (parsed.clarification) {
+            appendChatMsg('bot', parsed.clarification);
+        } else if (parsed.foods && parsed.foods.length > 0) {
+            appendFoodCards(parsed.foods);
+        } else {
+            appendChatMsg('bot', text);
+        }
+
+    } catch {
+        removeChatLoading();
+        appendAiError('שגיאת חיבור. בדוק את האינטרנט ונסה שוב.');
+        aiChatMessages.pop();
+    }
+}
+
+function parseGeminiResponse(text) {
+    const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+    try {
+        const json = JSON.parse(cleaned);
+        if (json.clarification) {
+            return { clarification: json.clarification };
+        }
+        if (Array.isArray(json)) {
+            const foods = json.filter(f => f.name && typeof f.calories === 'number');
+            return { foods };
+        }
+        if (json.name && typeof json.calories === 'number') {
+            return { foods: [json] };
+        }
+    } catch { /* not valid JSON, try extracting */ }
+
+    const arrMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (arrMatch) {
+        try {
+            const arr = JSON.parse(arrMatch[0]);
+            const foods = arr.filter(f => f.name && typeof f.calories === 'number');
+            if (foods.length) return { foods };
+        } catch { /* ignore */ }
+    }
+
+    return { text: cleaned };
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
 
 // ==================== BARCODE SCANNER ====================
 
