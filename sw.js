@@ -1,10 +1,10 @@
-const CACHE_NAME = 'nutrition-v7';
+const CACHE_NAME = 'nutrition-v8';
 const ASSETS = [
     './',
     './index.html',
-    './styles.css?v=7',
-    './app.js?v=7',
-    './food-db.js?v=7',
+    './styles.css?v=8',
+    './app.js?v=8',
+    './food-db.js?v=8',
     './icon.svg',
     './manifest.json'
 ];
