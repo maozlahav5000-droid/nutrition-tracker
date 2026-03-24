@@ -1085,10 +1085,7 @@ function renderSearchResults(results) {
                 <button class="result-delete-btn" data-delete-id="${food.id}" title="הסר מוצר">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                 </button>
-                <button class="result-edit-btn" data-edit-id="${food.id}" title="ערוך שם">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button class="result-edit-values-btn" data-editval-id="${food.id}" title="ערוך ערכים תזונתיים">
+                <button class="result-edit-values-btn" data-editval-id="${food.id}" title="ערוך מוצר">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 </button>
             </div>
@@ -1102,51 +1099,10 @@ function renderSearchResults(results) {
 
     container.querySelectorAll('.search-result-item').forEach(item => {
         item.addEventListener('click', (e) => {
-            if (e.target.closest('.result-delete-btn') || e.target.closest('.result-edit-btn') || e.target.closest('.result-edit-input') || e.target.closest('.result-edit-values-btn')) return;
+            if (e.target.closest('.result-delete-btn') || e.target.closest('.result-edit-values-btn')) return;
             const foodId = item.dataset.foodId;
             const food = findFoodById(foodId);
             if (food) openPortionModal(food);
-        });
-    });
-
-    container.querySelectorAll('.result-edit-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = btn.dataset.editId;
-            const item = btn.closest('.search-result-item');
-            const nameEl = item.querySelector('.result-name');
-            const badge = nameEl.querySelector('.result-custom-badge');
-            const currentName = nameEl.textContent.trim();
-
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'result-edit-input';
-            input.value = currentName;
-            input.maxLength = 40;
-
-            nameEl.textContent = '';
-            if (badge) nameEl.appendChild(badge.cloneNode(true));
-            nameEl.appendChild(input);
-            input.focus();
-            input.select();
-
-            function save() {
-                const newName = input.value.trim();
-                if (newName && newName !== currentName) {
-                    renameFood(id, newName);
-                }
-                searchFood();
-            }
-
-            function cancel() {
-                searchFood();
-            }
-
-            input.addEventListener('keydown', (ev) => {
-                if (ev.key === 'Enter') { ev.preventDefault(); save(); }
-                if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
-            });
-            input.addEventListener('blur', save);
         });
     });
 

@@ -439,7 +439,6 @@ body {
 }
 
 .result-delete-btn,
-.result-edit-btn,
 .result-edit-values-btn {
     background: none;
     border: none;
@@ -457,25 +456,11 @@ body {
     background: var(--fat-light);
 }
 
-.result-edit-btn:hover,
 .result-edit-values-btn:hover {
     color: var(--protein);
     background: var(--protein-light);
 }
 
-.result-edit-input {
-    font-family: inherit;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text);
-    border: 2px solid var(--protein);
-    border-radius: 6px;
-    padding: 3px 8px;
-    background: var(--card);
-    outline: none;
-    width: 100%;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
 
 .search-result-item.confirm-delete {
     background: var(--fat-light);
