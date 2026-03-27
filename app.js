@@ -32,6 +32,19 @@ const CATEGORIES = [
     'מאכלים מוכנים', 'קטניות ודגנים', 'שומנים ושמנים', 'חטיפים ומתוקים', 'משקאות'
 ];
 
+const COMMON_SUPPLEMENTS = [
+    { id: 'protein', name: 'חלבון (אבקה/שייק)', time: 'אחרי אימון', hour: 17, minute: 0 },
+    { id: 'creatine', name: 'קריאטין', time: 'בוקר עם ארוחה', hour: 8, minute: 0 },
+    { id: 'omega3', name: 'אומגה 3', time: 'עם ארוחת צהריים', hour: 12, minute: 0 },
+    { id: 'vitD', name: 'ויטמין D', time: 'בוקר עם ארוחה', hour: 8, minute: 0 },
+    { id: 'magnesium', name: 'מגנזיום', time: 'ערב לפני שינה', hour: 21, minute: 30 },
+    { id: 'multi', name: 'מולטי ויטמין', time: 'בוקר עם ארוחה', hour: 8, minute: 0 },
+    { id: 'iron', name: 'ברזל', time: 'בוקר קיבה ריקה', hour: 7, minute: 30 },
+    { id: 'vitC', name: 'ויטמין C', time: 'בוקר', hour: 8, minute: 0 },
+    { id: 'zma', name: 'ZMA / אבץ', time: 'ערב לפני שינה', hour: 21, minute: 30 },
+    { id: 'probiotic', name: 'פרוביוטיקה', time: 'בוקר קיבה ריקה', hour: 7, minute: 30 }
+];
+
 const USER_COLORS = [
     '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
     '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'
@@ -108,6 +121,8 @@ function enterApp() {
         loadDailyLog();
         renderAll();
     }
+    renderSupplements();
+    initSupplementNotifState();
 }
 
 function setMealByTime() {
@@ -416,6 +431,9 @@ function setupEventListeners() {
     });
     document.getElementById('barcode-add-btn').addEventListener('click', handleBarcodeAdd);
     document.getElementById('barcode-edit-name').addEventListener('click', handleBarcodeEditName);
+
+    // Supplements
+    setupSupplements();
 
     // AI Chat
     setupAiChat();
@@ -1249,6 +1267,247 @@ function createEmptyState() {
         <p class="sub">חפש מאכל למעלה כדי להתחיל</p>
     `;
     return div;
+}
+
+// ==================== SUPPLEMENTS ====================
+
+function loadSupplements() {
+    const data = localStorage.getItem(uKey('supplements'));
+    return data ? JSON.parse(data) : [];
+}
+
+function saveSupplements(list) {
+    localStorage.setItem(uKey('supplements'), JSON.stringify(list));
+}
+
+function loadSupplementChecks() {
+    const key = uKey(`supp_checks_${formatDateKey(new Date())}`);
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : {};
+}
+
+function saveSupplementChecks(checks) {
+    const key = uKey(`supp_checks_${formatDateKey(new Date())}`);
+    localStorage.setItem(key, JSON.stringify(checks));
+}
+
+function setupSupplements() {
+    const section = document.getElementById('supplements-section');
+    document.getElementById('supp-toggle').addEventListener('click', () => {
+        section.classList.toggle('expanded');
+    });
+
+    const presetSelect = document.getElementById('supp-preset-select');
+    populatePresetSelect();
+
+    presetSelect.addEventListener('change', () => {
+        const val = presetSelect.value;
+        if (val === '__custom__') {
+            document.getElementById('supp-custom-row').classList.add('visible');
+            document.getElementById('supp-custom-name').focus();
+        } else if (val) {
+            const preset = COMMON_SUPPLEMENTS.find(s => s.id === val);
+            if (preset) {
+                const list = loadSupplements();
+                if (!list.some(s => s.id === preset.id)) {
+                    list.push({ ...preset });
+                    saveSupplements(list);
+                    renderSupplements();
+                    populatePresetSelect();
+                }
+            }
+        }
+        presetSelect.value = '';
+    });
+
+    document.getElementById('supp-custom-add').addEventListener('click', addCustomSupplement);
+    document.getElementById('supp-custom-name').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addCustomSupplement();
+    });
+
+    document.getElementById('supp-notif-toggle').addEventListener('click', toggleSupplementNotifications);
+}
+
+function populatePresetSelect() {
+    const select = document.getElementById('supp-preset-select');
+    const current = loadSupplements();
+    const currentIds = new Set(current.map(s => s.id));
+
+    let html = '<option value="">+ הוסף תוסף מהרשימה...</option>';
+    COMMON_SUPPLEMENTS.forEach(s => {
+        if (!currentIds.has(s.id)) {
+            html += `<option value="${s.id}">${s.name} (${s.time})</option>`;
+        }
+    });
+    html += '<option value="__custom__">הוסף תוסף מותאם אישית...</option>';
+    select.innerHTML = html;
+}
+
+function addCustomSupplement() {
+    const nameInput = document.getElementById('supp-custom-name');
+    const timeSelect = document.getElementById('supp-custom-time');
+    const name = nameInput.value.trim();
+    if (!name) return;
+
+    const opt = timeSelect.selectedOptions[0];
+    const supp = {
+        id: 'custom_' + Date.now(),
+        name,
+        time: timeSelect.value,
+        hour: parseInt(opt.dataset.h),
+        minute: parseInt(opt.dataset.m)
+    };
+
+    const list = loadSupplements();
+    list.push(supp);
+    saveSupplements(list);
+
+    nameInput.value = '';
+    document.getElementById('supp-custom-row').classList.remove('visible');
+    renderSupplements();
+}
+
+function removeSupplement(suppId) {
+    let list = loadSupplements();
+    list = list.filter(s => s.id !== suppId);
+    saveSupplements(list);
+    renderSupplements();
+    populatePresetSelect();
+}
+
+function toggleSupplement(suppId, checked) {
+    const checks = loadSupplementChecks();
+    checks[suppId] = checked;
+    saveSupplementChecks(checks);
+    renderSupplements();
+}
+
+function renderSupplements() {
+    const list = loadSupplements();
+    const checks = loadSupplementChecks();
+    const container = document.getElementById('supp-list');
+    const countEl = document.getElementById('supp-count');
+
+    if (list.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:10px 0;">הוסף תוספים מהרשימה למטה</div>';
+        countEl.textContent = '';
+        return;
+    }
+
+    const done = list.filter(s => checks[s.id]).length;
+    countEl.textContent = `${done}/${list.length}`;
+
+    container.innerHTML = list.map(s => {
+        const isChecked = checks[s.id];
+        return `
+            <div class="supp-item${isChecked ? ' checked' : ''}">
+                <input type="checkbox" class="supp-checkbox" data-supp-id="${s.id}" ${isChecked ? 'checked' : ''}>
+                <div class="supp-info">
+                    <div class="supp-name">${s.name}</div>
+                    <span class="supp-time-badge">${s.time}</span>
+                </div>
+                <button class="supp-remove" data-supp-id="${s.id}" title="הסר">&times;</button>
+            </div>`;
+    }).join('');
+
+    container.querySelectorAll('.supp-checkbox').forEach(cb => {
+        cb.addEventListener('change', () => {
+            toggleSupplement(cb.dataset.suppId, cb.checked);
+        });
+    });
+
+    container.querySelectorAll('.supp-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+            removeSupplement(btn.dataset.suppId);
+        });
+    });
+}
+
+// -- Supplement Notifications --
+
+let suppNotifInterval = null;
+
+function isSupplementNotifEnabled() {
+    return localStorage.getItem(uKey('supp_notif')) === '1';
+}
+
+function toggleSupplementNotifications() {
+    const btn = document.getElementById('supp-notif-toggle');
+    const textEl = document.getElementById('supp-notif-text');
+
+    if (isSupplementNotifEnabled()) {
+        localStorage.setItem(uKey('supp_notif'), '0');
+        btn.classList.remove('active');
+        textEl.textContent = 'הפעל תזכורות';
+        stopSupplementNotifCheck();
+        return;
+    }
+
+    if (!('Notification' in window)) {
+        alert('הדפדפן שלך לא תומך בהתראות.');
+        return;
+    }
+
+    Notification.requestPermission().then(perm => {
+        if (perm === 'granted') {
+            localStorage.setItem(uKey('supp_notif'), '1');
+            btn.classList.add('active');
+            textEl.textContent = 'תזכורות פעילות';
+            startSupplementNotifCheck();
+        } else {
+            alert('לא ניתנה הרשאה להתראות.');
+        }
+    });
+}
+
+function startSupplementNotifCheck() {
+    if (suppNotifInterval) return;
+    checkSupplementReminders();
+    suppNotifInterval = setInterval(checkSupplementReminders, 60000);
+}
+
+function stopSupplementNotifCheck() {
+    if (suppNotifInterval) {
+        clearInterval(suppNotifInterval);
+        suppNotifInterval = null;
+    }
+}
+
+function checkSupplementReminders() {
+    if (!isSupplementNotifEnabled()) return;
+    if (Notification.permission !== 'granted') return;
+
+    const list = loadSupplements();
+    const checks = loadSupplementChecks();
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const sentKey = uKey(`supp_sent_${formatDateKey(now)}`);
+    const sent = JSON.parse(localStorage.getItem(sentKey) || '{}');
+
+    list.forEach(s => {
+        if (checks[s.id]) return;
+        if (sent[s.id]) return;
+        if (h === s.hour && m >= s.minute && m <= s.minute + 4) {
+            new Notification('תוסף מזון - נוטרי', {
+                body: `הגיע הזמן לקחת ${s.name}! (${s.time})`,
+                icon: 'icon-192.png',
+                tag: `supp-${s.id}`
+            });
+            sent[s.id] = true;
+            localStorage.setItem(sentKey, JSON.stringify(sent));
+        }
+    });
+}
+
+function initSupplementNotifState() {
+    const btn = document.getElementById('supp-notif-toggle');
+    const textEl = document.getElementById('supp-notif-text');
+    if (isSupplementNotifEnabled()) {
+        btn.classList.add('active');
+        textEl.textContent = 'תזכורות פעילות';
+        startSupplementNotifCheck();
+    }
 }
 
 // ==================== AI CHAT ====================

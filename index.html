@@ -16,7 +16,7 @@
 
     <link rel="preconnect" href="https://world.openfoodfacts.org">
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=8">
+    <link rel="stylesheet" href="styles.css?v=9">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" async></script>
 </head>
 <body>
@@ -96,6 +96,39 @@
                         <span class="macro-value"><strong id="fat-consumed">0</strong> / <span id="fat-goal">0</span>g</span>
                     </div>
                     <div class="progress-bar"><div class="progress-fill" id="fat-bar"></div></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="supplements-section" id="supplements-section">
+            <button class="supp-toggle" id="supp-toggle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M9 12h6M12 9v6"/><circle cx="12" cy="12" r="10"/></svg>
+                <span>תוספי מזון יומיים</span>
+                <span class="supp-count" id="supp-count"></span>
+                <svg class="supp-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="supp-body" id="supp-body">
+                <div class="supp-list" id="supp-list"></div>
+                <div class="supp-add-area">
+                    <select id="supp-preset-select">
+                        <option value="">+ הוסף תוסף מהרשימה...</option>
+                    </select>
+                    <div class="supp-custom-row" id="supp-custom-row">
+                        <input type="text" id="supp-custom-name" placeholder="שם תוסף..." maxlength="30" autocomplete="off">
+                        <select id="supp-custom-time">
+                            <option value="בוקר" data-h="8" data-m="0">בוקר</option>
+                            <option value="צהריים" data-h="12" data-m="0">צהריים</option>
+                            <option value="ערב" data-h="21" data-m="30">ערב</option>
+                            <option value="אחרי אימון" data-h="17" data-m="0">אחרי אימון</option>
+                        </select>
+                        <button id="supp-custom-add" class="btn-primary">הוסף</button>
+                    </div>
+                </div>
+                <div class="supp-notif-area">
+                    <button id="supp-notif-toggle" class="supp-notif-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                        <span id="supp-notif-text">הפעל תזכורות</span>
+                    </button>
                 </div>
             </div>
         </section>
@@ -503,8 +536,8 @@
         </div>
     </div>
 
-    <script src="food-db.js?v=8"></script>
-    <script src="app.js?v=8"></script>
+    <script src="food-db.js?v=9"></script>
+    <script src="app.js?v=9"></script>
     <script>
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
