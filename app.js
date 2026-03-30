@@ -1215,6 +1215,30 @@ function renderFoodLog() {
     });
 
     container.innerHTML = html;
+
+    container.querySelectorAll('.log-item').forEach(item => {
+        let pressTimer = null;
+        const entryId = item.querySelector('.delete-btn')?.dataset.entryId;
+        if (!entryId) return;
+
+        function startPress() {
+            pressTimer = setTimeout(() => {
+                pressTimer = null;
+                openLogItemEdit(item, parseInt(entryId));
+            }, 500);
+        }
+        function cancelPress() {
+            if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        }
+
+        item.addEventListener('mousedown', startPress);
+        item.addEventListener('mouseup', cancelPress);
+        item.addEventListener('mouseleave', cancelPress);
+        item.addEventListener('touchstart', startPress, { passive: true });
+        item.addEventListener('touchend', cancelPress);
+        item.addEventListener('touchcancel', cancelPress);
+    });
+
     container.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const logItem = btn.closest('.log-item');
@@ -1253,6 +1277,47 @@ function renderFoodLog() {
 
             overlay.querySelector('.delete-confirm-no').addEventListener('click', cancel);
         });
+    });
+}
+
+function openLogItemEdit(logItem, entryId) {
+    if (logItem.classList.contains('confirm-active') || logItem.classList.contains('editing')) return;
+    const entry = state.dailyLog.find(e => e.id === entryId);
+    if (!entry) return;
+
+    logItem.classList.add('editing');
+    const overlay = document.createElement('div');
+    overlay.className = 'log-edit-overlay';
+    overlay.innerHTML = `
+        <div class="log-edit-form">
+            <div class="log-edit-title">${entry.name}</div>
+            <div class="log-edit-fields">
+                <label>גרם<input type="number" class="log-edit-grams" value="${entry.grams || ''}" min="0" step="1"></label>
+                <label>קק"ל<input type="number" class="log-edit-cal" value="${entry.calories}" min="0" step="1"></label>
+                <label>חלבון<input type="number" class="log-edit-prot" value="${entry.protein}" min="0" step="0.1"></label>
+                <label>פחמימות<input type="number" class="log-edit-carbs" value="${entry.carbs}" min="0" step="0.1"></label>
+                <label>שומן<input type="number" class="log-edit-fat" value="${entry.fat}" min="0" step="0.1"></label>
+            </div>
+            <div class="log-edit-actions">
+                <button class="log-edit-save">שמור</button>
+                <button class="log-edit-cancel">ביטול</button>
+            </div>
+        </div>`;
+    logItem.appendChild(overlay);
+
+    overlay.querySelector('.log-edit-save').addEventListener('click', () => {
+        entry.grams = parseInt(overlay.querySelector('.log-edit-grams').value) || 0;
+        entry.calories = Math.round(parseFloat(overlay.querySelector('.log-edit-cal').value) || 0);
+        entry.protein = +(parseFloat(overlay.querySelector('.log-edit-prot').value) || 0).toFixed(1);
+        entry.carbs = +(parseFloat(overlay.querySelector('.log-edit-carbs').value) || 0).toFixed(1);
+        entry.fat = +(parseFloat(overlay.querySelector('.log-edit-fat').value) || 0).toFixed(1);
+        saveDailyLog();
+        renderAll();
+    });
+
+    overlay.querySelector('.log-edit-cancel').addEventListener('click', () => {
+        logItem.classList.remove('editing');
+        overlay.remove();
     });
 }
 
