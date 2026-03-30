@@ -61,6 +61,7 @@ const state = {
     hiddenFoods: [],
     renamedFoods: {},
     editingFoodId: null,
+    editingLogId: null,
     selectedFood: null,
     selectedMeal: 'breakfast',
     activeCategory: null,
@@ -301,7 +302,11 @@ function setupEventListeners() {
     document.getElementById('close-profile').addEventListener('click', () => {
         if (state.profile) hideModal('profile-modal');
     });
-    document.getElementById('close-portion').addEventListener('click', () => hideModal('portion-modal'));
+    document.getElementById('close-portion').addEventListener('click', () => {
+        state.editingLogId = null;
+        document.getElementById('add-food-btn').textContent = 'הוסף למעקב';
+        hideModal('portion-modal');
+    });
 
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', (e) => {
@@ -956,19 +961,36 @@ function handleAddFood() {
     const food = state.selectedFood;
     if (!food || !grams || grams <= 0) return;
 
+    const activeMeal = document.querySelector('#meal-pills .meal-pill.active');
+    const meal = activeMeal ? activeMeal.dataset.meal : state.selectedMeal;
     const ratio = grams / 100;
-    state.dailyLog.push({
-        id: Date.now(),
-        foodId: food.id,
-        name: food.name,
-        grams: Math.round(grams),
-        calories: Math.round(food.calories * ratio),
-        protein: +(food.protein * ratio).toFixed(1),
-        carbs: +(food.carbs * ratio).toFixed(1),
-        fat: +(food.fat * ratio).toFixed(1),
-        meal: state.selectedMeal,
-        time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
-    });
+
+    if (state.editingLogId) {
+        const entry = state.dailyLog.find(e => e.id === state.editingLogId);
+        if (entry) {
+            entry.grams = Math.round(grams);
+            entry.calories = Math.round(food.calories * ratio);
+            entry.protein = +(food.protein * ratio).toFixed(1);
+            entry.carbs = +(food.carbs * ratio).toFixed(1);
+            entry.fat = +(food.fat * ratio).toFixed(1);
+            entry.meal = meal;
+        }
+        state.editingLogId = null;
+        document.getElementById('add-food-btn').textContent = 'הוסף למעקב';
+    } else {
+        state.dailyLog.push({
+            id: Date.now(),
+            foodId: food.id,
+            name: food.name,
+            grams: Math.round(grams),
+            calories: Math.round(food.calories * ratio),
+            protein: +(food.protein * ratio).toFixed(1),
+            carbs: +(food.carbs * ratio).toFixed(1),
+            fat: +(food.fat * ratio).toFixed(1),
+            meal,
+            time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+        });
+    }
 
     saveDailyLog();
     renderAll();
@@ -1224,7 +1246,7 @@ function renderFoodLog() {
         function startPress() {
             pressTimer = setTimeout(() => {
                 pressTimer = null;
-                openLogItemEdit(item, parseInt(entryId));
+                openEditLogEntry(parseInt(entryId));
             }, 500);
         }
         function cancelPress() {
@@ -1280,45 +1302,63 @@ function renderFoodLog() {
     });
 }
 
-function openLogItemEdit(logItem, entryId) {
-    if (logItem.classList.contains('confirm-active') || logItem.classList.contains('editing')) return;
+function openEditLogEntry(entryId) {
     const entry = state.dailyLog.find(e => e.id === entryId);
     if (!entry) return;
 
-    logItem.classList.add('editing');
-    const overlay = document.createElement('div');
-    overlay.className = 'log-edit-overlay';
-    overlay.innerHTML = `
-        <div class="log-edit-form">
-            <div class="log-edit-title">${entry.name}</div>
-            <div class="log-edit-fields">
-                <label>גרם<input type="number" class="log-edit-grams" value="${entry.grams || ''}" min="0" step="1"></label>
-                <label>קק"ל<input type="number" class="log-edit-cal" value="${entry.calories}" min="0" step="1"></label>
-                <label>חלבון<input type="number" class="log-edit-prot" value="${entry.protein}" min="0" step="0.1"></label>
-                <label>פחמימות<input type="number" class="log-edit-carbs" value="${entry.carbs}" min="0" step="0.1"></label>
-                <label>שומן<input type="number" class="log-edit-fat" value="${entry.fat}" min="0" step="0.1"></label>
-            </div>
-            <div class="log-edit-actions">
-                <button class="log-edit-save">שמור</button>
-                <button class="log-edit-cancel">ביטול</button>
-            </div>
-        </div>`;
-    logItem.appendChild(overlay);
+    state.editingLogId = entryId;
 
-    overlay.querySelector('.log-edit-save').addEventListener('click', () => {
-        entry.grams = parseInt(overlay.querySelector('.log-edit-grams').value) || 0;
-        entry.calories = Math.round(parseFloat(overlay.querySelector('.log-edit-cal').value) || 0);
-        entry.protein = +(parseFloat(overlay.querySelector('.log-edit-prot').value) || 0).toFixed(1);
-        entry.carbs = +(parseFloat(overlay.querySelector('.log-edit-carbs').value) || 0).toFixed(1);
-        entry.fat = +(parseFloat(overlay.querySelector('.log-edit-fat').value) || 0).toFixed(1);
-        saveDailyLog();
-        renderAll();
+    const grams = entry.grams || 100;
+    const food = {
+        id: '__edit__',
+        name: entry.name,
+        calories: Math.round(entry.calories / grams * 100) || 0,
+        protein: +((entry.protein / grams) * 100).toFixed(1) || 0,
+        carbs: +((entry.carbs / grams) * 100).toFixed(1) || 0,
+        fat: +((entry.fat / grams) * 100).toFixed(1) || 0,
+        servingSize: grams,
+        servingDescription: 'מנה'
+    };
+
+    state.selectedFood = food;
+    document.getElementById('portion-food-name').textContent = food.name;
+
+    document.getElementById('portion-info').innerHTML = `
+        <div class="pn-item"><span class="pn-value">${food.calories}</span><span class="pn-label">קלוריות</span></div>
+        <div class="pn-item"><span class="pn-value">${food.protein}g</span><span class="pn-label">חלבון</span></div>
+        <div class="pn-item"><span class="pn-value">${food.carbs}g</span><span class="pn-label">פחמימות</span></div>
+        <div class="pn-item"><span class="pn-value">${food.fat}g</span><span class="pn-label">שומן</span></div>
+    `;
+
+    const quickContainer = document.getElementById('quick-portions');
+    const portions = [
+        { label: `מנה (${grams}g)`, grams },
+        { label: '50g', grams: 50 }, { label: '100g', grams: 100 },
+        { label: '150g', grams: 150 }, { label: '200g', grams: 200 }
+    ];
+    quickContainer.innerHTML = portions.map(p =>
+        `<button class="quick-btn" data-grams="${p.grams}">${p.label}</button>`
+    ).join('');
+    quickContainer.onclick = (e) => {
+        const btn = e.target.closest('.quick-btn');
+        if (!btn) return;
+        document.getElementById('portion-grams').value = btn.dataset.grams;
+        quickContainer.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updatePortionPreview();
+    };
+
+    document.getElementById('portion-grams').value = grams;
+
+    const mealPills = document.getElementById('meal-pills');
+    mealPills.querySelectorAll('.meal-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.meal === entry.meal);
     });
 
-    overlay.querySelector('.log-edit-cancel').addEventListener('click', () => {
-        logItem.classList.remove('editing');
-        overlay.remove();
-    });
+    updatePortionPreview();
+    const addBtn = document.getElementById('add-food-btn');
+    addBtn.textContent = 'שמור שינויים';
+    showModal('portion-modal');
 }
 
 function createEmptyState() {
