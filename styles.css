@@ -1958,15 +1958,31 @@ input[type="number"]::-webkit-outer-spin-button {
     border: 1px solid var(--fat);
 }
 
+.ai-thinking {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.ai-thinking-text {
+    font-size: 0.85rem;
+    color: #6366f1;
+    font-weight: 500;
+}
+
 .ai-loading-dots {
     display: flex;
-    gap: 5px;
-    padding: 12px 16px;
+    gap: 4px;
+    align-items: center;
 }
 
 .ai-loading-dots span {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #6366f1;
     animation: ai-dot-bounce 1.2s infinite ease-in-out;
