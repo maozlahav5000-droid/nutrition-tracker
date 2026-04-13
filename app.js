@@ -1246,7 +1246,7 @@ function renderFoodLog() {
         function startPress() {
             pressTimer = setTimeout(() => {
                 pressTimer = null;
-                openEditLogEntry(parseInt(entryId));
+                openEditLogEntry(parseFloat(entryId));
             }, 500);
         }
         function cancelPress() {
@@ -1267,7 +1267,7 @@ function renderFoodLog() {
             if (logItem.classList.contains('confirm-active')) return;
 
             logItem.classList.add('confirm-active');
-            const entryId = parseInt(btn.dataset.entryId);
+            const entryId = parseFloat(btn.dataset.entryId);
             const entry = state.dailyLog.find(e => e.id === entryId);
             const name = entry ? entry.name : '';
 
@@ -1906,7 +1906,7 @@ function saveAiFoodToCustom(food) {
 
 function addAiFoodToLog(food) {
     state.dailyLog.push({
-        id: Date.now() + Math.random(),
+        id: Date.now(),
         foodId: 'ai_' + Date.now(),
         name: food.name,
         grams: Math.round(food.grams || 0),
