@@ -1632,8 +1632,8 @@ function initSupplementNotifState() {
 
 // ==================== AI CHAT ====================
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 const AI_SYSTEM_PROMPT = `אתה תזונאי קליני מוסמך (R.D.) עם ניסיון של 15 שנה בייעוץ תזונתי אישי, התמחות בספורט ובהרכב גוף. השם שלך "נוטרי". אתה משלב ידע מדעי עדכני עם גישה חמה ונגישה.
 
@@ -1985,51 +1985,66 @@ async function callGemini(userText, imageData) {
         }
     };
 
-    try {
-        const resp = await fetch(`${GEMINI_URL}?key=${key}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
+    let lastError = '';
+    for (const model of GEMINI_MODELS) {
+        try {
+            const url = `${GEMINI_BASE}/${model}:generateContent?key=${key}`;
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
 
-        removeChatLoading();
-
-        if (!resp.ok) {
-            const errData = await resp.json().catch(() => null);
-            const errMsg = errData?.error?.message || `שגיאה ${resp.status}`;
-            if (resp.status === 400 || resp.status === 403) {
-                appendAiError(`מפתח API לא תקין. ${errMsg}`);
-            } else if (resp.status === 429) {
-                appendAiError('חרגת ממגבלת הבקשות. נסה שוב בעוד דקה.');
-            } else {
-                appendAiError(`שגיאה: ${errMsg}`);
+            if (resp.status === 503 || resp.status === 429) {
+                lastError = resp.status === 429 ? 'rate limit' : 'overloaded';
+                continue;
             }
-            aiChatMessages.pop();
+
+            removeChatLoading();
+
+            if (!resp.ok) {
+                const errData = await resp.json().catch(() => null);
+                const errMsg = errData?.error?.message || `שגיאה ${resp.status}`;
+                if (resp.status === 400 || resp.status === 403) {
+                    appendAiError(`מפתח API לא תקין. ${errMsg}`);
+                } else {
+                    appendAiError(`שגיאה: ${errMsg}`);
+                }
+                aiChatMessages.pop();
+                return;
+            }
+
+            const data = await resp.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+            aiChatMessages.push({ role: 'model', parts: [{ text }] });
+
+            const parsed = parseGeminiResponse(text);
+
+            if (parsed.text) {
+                appendChatMsg('bot', parsed.text);
+            }
+            if (parsed.foods && parsed.foods.length > 0) {
+                appendFoodCards(parsed.foods);
+            }
+            if (!parsed.text && !parsed.foods?.length) {
+                appendChatMsg('bot', text);
+            }
             return;
+
+        } catch {
+            lastError = 'network';
+            continue;
         }
-
-        const data = await resp.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-        aiChatMessages.push({ role: 'model', parts: [{ text }] });
-
-        const parsed = parseGeminiResponse(text);
-
-        if (parsed.text) {
-            appendChatMsg('bot', parsed.text);
-        }
-        if (parsed.foods && parsed.foods.length > 0) {
-            appendFoodCards(parsed.foods);
-        }
-        if (!parsed.text && !parsed.foods?.length) {
-            appendChatMsg('bot', text);
-        }
-
-    } catch {
-        removeChatLoading();
-        appendAiError('שגיאת חיבור. בדוק את האינטרנט ונסה שוב.');
-        aiChatMessages.pop();
     }
+
+    removeChatLoading();
+    if (lastError === 'network') {
+        appendAiError('שגיאת חיבור. בדוק את האינטרנט ונסה שוב.');
+    } else {
+        appendAiError('כל המודלים עמוסים כרגע. נסה שוב בעוד כמה שניות.');
+    }
+    aiChatMessages.pop();
 }
 
 function parseGeminiResponse(rawText) {
