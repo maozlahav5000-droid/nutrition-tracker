@@ -1008,6 +1008,7 @@ function renderAll() {
     renderDashboard();
     renderFoodLog();
     renderUserHeader();
+    renderSupplements();
 }
 
 function renderUserHeader() {
@@ -1224,6 +1225,7 @@ function renderFoodLog() {
                         <div class="log-item-name">${item.name}</div>
                         <div class="log-item-details">${item.grams ? item.grams + 'g · ' : ''}${item.time}</div>
                     </div>
+                    <button class="log-meal-btn" data-entry-id="${item.id}" title="שנה ארוחה">${MEAL_LABELS[item.meal] || 'חטיף'}</button>
                     <div class="log-item-macros">
                         <div class="log-macro cal"><span class="log-macro-value">${item.calories}</span><span class="log-macro-label">קק"ל</span></div>
                         <div class="log-macro prot"><span class="log-macro-value">${item.protein}g</span><span class="log-macro-label">חלבון</span></div>
@@ -1259,6 +1261,19 @@ function renderFoodLog() {
         item.addEventListener('touchstart', startPress, { passive: true });
         item.addEventListener('touchend', cancelPress);
         item.addEventListener('touchcancel', cancelPress);
+    });
+
+    container.querySelectorAll('.log-meal-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const entryId = parseFloat(btn.dataset.entryId);
+            const entry = state.dailyLog.find(en => en.id === entryId);
+            if (!entry) return;
+            const currentIdx = MEAL_ORDER.indexOf(entry.meal);
+            entry.meal = MEAL_ORDER[(currentIdx + 1) % MEAL_ORDER.length];
+            saveDailyLog();
+            renderAll();
+        });
     });
 
     container.querySelectorAll('.delete-btn').forEach(btn => {

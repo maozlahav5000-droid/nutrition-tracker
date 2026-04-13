@@ -746,6 +746,26 @@ body {
     margin-top: 2px;
 }
 
+.log-meal-btn {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border: none;
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.65rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: var(--transition);
+}
+
+.log-meal-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
 .log-item-macros {
     display: flex;
     gap: 12px;
